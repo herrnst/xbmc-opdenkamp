@@ -122,6 +122,7 @@ void CAdvancedSettings::Initialize()
   m_lcdDimOnScreenSave = false;
   m_lcdScrolldelay = 1;
   m_lcdHostName = "localhost";
+  m_lcdRefreshRate = 4; // in Hertz
 
   m_autoDetectPingTime = 30;
 
@@ -651,6 +652,7 @@ void CAdvancedSettings::ParseSettingsFile(const CStdString &file)
     XMLUtils::GetBoolean(pElement, "dimonscreensave", m_lcdDimOnScreenSave);
     XMLUtils::GetInt(pElement, "scrolldelay", m_lcdScrolldelay, -8, 8);
     XMLUtils::GetString(pElement, "hostname", m_lcdHostName);
+    XMLUtils::GetInt(pElement, "refreshrate", m_lcdRefreshRate, 1, 20);
   }
   pElement = pRootElement->FirstChildElement("network");
   if (pElement)
