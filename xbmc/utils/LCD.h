@@ -56,6 +56,11 @@ public:
                         LCD_RESOLUTION_INDICATOR_SD,
                         LCD_RESOLUTION_INDICATOR_HD
                 };
+  enum LCD_CHARSET_CONVTABS {
+                        LCD_CHARSET_TAB_HD44780 = 0,
+                        LCD_CHARSET_TAB_KS0073 = 1,
+                        LCD_CHARSET_TAB_IMONMDM = 2
+                };
   virtual void Initialize();
   virtual bool IsConnected();
   virtual void Stop() = 0;
@@ -77,7 +82,7 @@ public:
            m_eCurrentCharset(CUSTOM_CHARSET_DEFAULT) {}
 protected:
   virtual void Process() = 0;
-  void StringToLCDCharSet(CStdString& strText);
+  void StringToLCDCharSet(CStdString& strText, unsigned int iCharsetTab);
   unsigned char GetLCDCharsetCharacter( UINT _nCharacter, int _nCharset=-1);
   void LoadMode(TiXmlNode *node, LCD_MODE mode);
 
