@@ -26,7 +26,16 @@
 #include "log.h"
 #include "XMLUtils.h"
 
+// required for icon state retrieval and display
+#include "Application.h"
+#include "../guilib/GUIWindowManager.h"
+#include "../GUIInfoManager.h"
+#include "../pvr/PVRManager.h"
+#include "../storage/MediaManager.h"
+#include "StreamDetails.h"
+
 using namespace std;
+using namespace PVR;
 
 void ILCD::StringToLCDCharSet(CStdString& strText, unsigned int iCharsetTab)
 {
@@ -519,6 +528,8 @@ void ILCD::Render(LCD_MODE mode)
   // fill remainder with empty space
   while (outLine < 4)
     SetLine(outLine++, "");
+
+  RenderIcons();
 }
 
 void ILCD::DisableOnPlayback(bool playingVideo, bool playingAudio)
@@ -526,4 +537,399 @@ void ILCD::DisableOnPlayback(bool playingVideo, bool playingAudio)
   if ((playingVideo && (m_disableOnPlay & DISABLE_ON_PLAY_VIDEO)) ||
       (playingAudio && (m_disableOnPlay & DISABLE_ON_PLAY_MUSIC)))
     SetBackLight(0);
+}
+
+void ILCD::RenderIcons()
+{
+  static bool rendericons = false;
+
+  SetIconMovie(false);
+  SetIconMusic(false);
+  SetIconTV(false);
+  SetIconPhoto(false);
+  SetIconDiscIn(false);
+  SetIconSource(false);
+  SetIconFit(false);
+
+  if (g_application.GetNavigationIdleTime() > 0.1)
+  {
+    rendericons = true;
+  }
+
+  if ((!m_bStop) && (rendericons))
+  {
+    if (g_application.IsPlayingVideo() && g_application.m_pPlayer)
+    {
+      SetLCDPlayingState(true);
+
+      if (g_PVRManager.TranslateBoolInfo(PVR_IS_PLAYING_TV))
+      {
+        SetIconTV(true);
+      }
+      else
+      { // playing e.g. a video
+        SetIconMovie(true);
+      }
+
+      if (g_application.m_pPlayer->GetPictureWidth() <= 720)
+      {
+        SetIconResolution(LCD_RESOLUTION_INDICATOR_SD);
+      }
+      else
+      {
+        SetIconResolution(LCD_RESOLUTION_INDICATOR_HD);
+      }
+
+      int iResolution = g_graphicsContext.GetVideoResolution();
+
+      // tolerate 10% difference from current resolution to state that it is "in original resolution"
+      if (    (g_application.m_pPlayer->GetPictureWidth() <= g_settings.m_ResInfo[iResolution].iWidth + ((g_settings.m_ResInfo[iResolution].iWidth)*0.1))
+           && (g_application.m_pPlayer->GetPictureWidth() >= g_settings.m_ResInfo[iResolution].iWidth - ((g_settings.m_ResInfo[iResolution].iWidth)*0.1)) )
+      {
+        SetIconSource(true);
+      }
+      else
+      {
+        SetIconFit(true);
+      }
+    }
+    else if (g_application.IsPlayingAudio() && g_application.m_pPlayer)
+    {
+      SetLCDPlayingState(true);
+      SetIconMusic(true);
+
+    }
+    else
+    {
+      SetLCDPlayingState(false);
+      SetIconResolution(LCD_RESOLUTION_INDICATOR_NONE);
+
+      if (g_windowManager.GetActiveWindow() == WINDOW_WEATHER)
+      {
+        SetIconWeather(true);
+      }
+      else if (    (g_windowManager.GetActiveWindow() >=  WINDOW_PVR           )
+                && (g_windowManager.GetActiveWindow() <  (WINDOW_PVR+100)      )
+              )
+      {
+        SetIconTV(true);
+      }
+      else if (    (g_windowManager.GetActiveWindow() == WINDOW_VIDEOS         )
+                || (g_windowManager.GetActiveWindow() == WINDOW_VIDEO_FILES    )
+                || (g_windowManager.GetActiveWindow() == WINDOW_VIDEO_NAV      )
+                || (g_windowManager.GetActiveWindow() == WINDOW_VIDEO_PLAYLIST )
+              )
+      {
+        SetIconMovie(true);
+      }
+      else if (    (g_windowManager.GetActiveWindow() == WINDOW_MUSIC                 )
+                || (g_windowManager.GetActiveWindow() == WINDOW_MUSIC_PLAYLIST        )
+                || (g_windowManager.GetActiveWindow() == WINDOW_MUSIC_FILES           )
+                || (g_windowManager.GetActiveWindow() == WINDOW_MUSIC_NAV             )
+                || (g_windowManager.GetActiveWindow() == WINDOW_MUSIC_PLAYLIST_EDITOR )
+              )
+      {
+        SetIconMusic(true);
+      }
+      else if (g_windowManager.GetActiveWindow() == WINDOW_PICTURES)
+      {
+        SetIconPhoto(true);
+      }
+    }
+
+    SetCodecInformationIcons();
+
+    if (g_application.GetVolume() == 0)
+    {
+      SetIconMute(true);
+    }
+    else
+    {
+      SetIconMute(false);
+    }
+
+    if (g_application.IsPaused())
+    {
+      SetIconPause(true);
+    }
+    else
+    {
+      SetIconPause(false);
+    }
+
+    // Set the volume icon accordingly
+    if (g_windowManager.IsWindowActive(WINDOW_DIALOG_VOLUME_BAR))
+    {
+      SetIconVolume(true);
+    }
+    else
+    {
+      SetIconVolume(false);
+    }
+
+    // Set the alarm icon accordingly - if a pop-up is displayed
+    if (g_windowManager.IsWindowActive(WINDOW_DIALOG_KAI_TOAST))
+    {
+      SetIconAlarm(true);
+    }
+    else
+    {
+      SetIconAlarm(false);
+    }
+
+    // Set the record icon accordingly
+    if ((g_application.m_pPlayer != NULL && g_application.m_pPlayer->IsRecording()) || g_PVRManager.TranslateBoolInfo(PVR_IS_RECORDING))
+    {
+      SetIconRecord(true);
+    }
+    else
+    {
+      SetIconRecord(false);
+    }
+
+    // Set the repeat icon accordingly
+    if (    (g_playlistPlayer.GetRepeat(g_playlistPlayer.GetCurrentPlaylist()) == PLAYLIST::REPEAT_ALL)
+         || (g_playlistPlayer.GetRepeat(g_playlistPlayer.GetCurrentPlaylist()) == PLAYLIST::REPEAT_ONE)
+       )
+    {
+      SetIconRepeat(true);
+    }
+    else
+    {
+      SetIconRepeat(false);
+    }
+
+    // Set the shuffle icon accordingly
+    if (g_playlistPlayer.IsShuffled(g_playlistPlayer.GetCurrentPlaylist()))
+    {
+      SetIconShuffle(true);
+    }
+    else
+    {
+      SetIconShuffle(false);
+    }
+
+    // Set the time icon accordingly
+    if ((!g_application.IsPlaying() && g_application.GetNavigationIdleTime() >= 5) && g_application.IsInScreenSaver())
+    {
+      SetIconTime(true);
+    }
+    else
+    {
+      SetIconTime(false);
+    }
+
+    if (g_mediaManager.IsDiscInDrive()) {
+      SetIconDiscIn(true);
+    }
+
+    // Set the SCR1/2 icons accordingly
+    SetIconSCR1(false);
+    SetIconSCR2(false);
+  }
+
+  SendIconStatesToDisplay();
+}
+
+void ILCD::SetCodecInformationIcons()
+{
+  if (g_application.IsPlaying() && g_application.m_pPlayer)
+  {
+    if (g_application.m_pPlayer->IsPassthrough())
+    {
+      SetIconSPDIF(true);
+    }
+    else
+    {
+      SetIconSPDIF(false);
+    }
+
+    if (g_application.IsPlayingVideo())
+    {
+      CStdString videoCodec = g_application.m_pPlayer->GetVideoCodecName();
+      //CLog::Log(LOGDEBUG, "XLCDproc::%s - Videocodec = '%s'", __FUNCTION__, videoCodec.c_str());
+      if (    (videoCodec.CompareNoCase("mpg")         == 0)
+           || (videoCodec.CompareNoCase("mpeg")        == 0)
+           || (videoCodec.CompareNoCase("mpeg2video")  == 0)
+           || (videoCodec.CompareNoCase("h264")        == 0)
+           || (videoCodec.CompareNoCase("x264")        == 0)
+           || (videoCodec.CompareNoCase("mpeg4")       == 0)
+           || (g_PVRManager.TranslateBoolInfo(PVR_IS_PLAYING_TV))
+         )
+      { //g_application.m_pPlayer->GetVideoCodecName() returns "" in TV-mode, so we have to cheat a bit
+        SetIconMPEG(true);
+      }
+      else if (    (videoCodec.CompareNoCase("divx") == 0)
+                || (videoCodec.CompareNoCase("dx50") == 0)
+                || (videoCodec.CompareNoCase("div3") == 0)
+              )
+      {
+        SetIconDIVX(true);
+      }
+      else if (videoCodec.CompareNoCase("xvid")      == 0)
+      {
+        SetIconXVID(true);
+      }
+      else if (videoCodec.CompareNoCase("wmv")       == 0)
+      {
+        SetIconWMV(true);
+      }
+    }
+
+    CStdString audioCodec = g_application.m_pPlayer->GetAudioCodecName();
+    //CLog::Log(LOGDEBUG, "XLCDproc::%s - Audiocodec = '%s'", __FUNCTION__, audioCodec.c_str());
+    if (    (audioCodec.CompareNoCase("mpga")        == 0)
+         || (audioCodec.CompareNoCase("mp2")         == 0)
+       )
+    {
+      SetIconMPGA(true);
+    }
+    else if (    (audioCodec.CompareNoCase("ac3")    == 0)
+              || (audioCodec.CompareNoCase("truehd") == 0)
+            )
+    {
+      SetIconAC3(true);
+    }
+    else if (    (audioCodec.CompareNoCase("dts")      == 0)
+              || (audioCodec.CompareNoCase("dtshd_ma") == 0)
+              || (audioCodec.CompareNoCase("dca")      == 0)
+            )
+    {
+      SetIconDTS(true);
+    }
+    else if (audioCodec.CompareNoCase("mp3")         == 0)
+    {
+      SetIconMP3(true);
+    }
+    else if (    (audioCodec.CompareNoCase("ogg")    == 0)
+              || (audioCodec.CompareNoCase("vorbis") == 0)
+            )
+    {
+      SetIconOGG(true);
+    }
+    else if (    (audioCodec.CompareNoCase("wma")    == 0)
+              || (audioCodec.CompareNoCase("wmav2")  == 0)
+            )
+    {
+      if (g_application.IsPlayingVideo())
+      {
+        SetIconVWMA(true);
+      }
+      else if (g_application.IsPlayingAudio())
+      {
+        SetIconAWMA(true);
+      }
+    }
+    else if (    (audioCodec.CompareNoCase("wav")    == 0)
+              || (audioCodec.Find("pcm")             >= 0)
+            )
+    {
+      SetIconWAV(true);
+    }
+
+    CStreamDetails streamDetails;
+
+    if (g_application.m_pPlayer->GetStreamDetails(streamDetails)) {
+      SetIconAudioChannels(streamDetails.GetAudioChannels());
+    }
+    else if (!audioCodec.IsEmpty()) {
+      SetIconAudioChannels(2); // Let's assume stereo if there is audio being played but no stream details are available (e.g. while playing music)
+    }
+  }
+  else {
+    ResetCodecIcons();
+  }
+}
+
+void ILCD::ResetCodecIcons()
+{
+  SetIconSPDIF(false);
+
+  SetIconMPEG(false);
+  SetIconDIVX(false);
+  SetIconXVID(false);
+  SetIconWMV(false);
+
+  SetIconMPGA(false);
+  SetIconAC3(false);
+  SetIconDTS(false);
+  SetIconMP3(false);
+
+  SetIconOGG(false);
+  SetIconVWMA(false);
+  SetIconAWMA(false);
+  SetIconWAV(false);
+}
+
+void ILCD::SetLCDPlayingState(bool on)
+{
+  SetIconPlaying(on);
+
+  if (g_advancedSettings.m_lcdProgressBar1 == "progress")
+  {
+    SetProgressBar1((on) ? g_application.GetPercentage() : 0.0);
+  }
+  else if (g_advancedSettings.m_lcdProgressBar1 == "volume")
+  {
+    SetProgressBar1(g_application.GetVolume());
+  }
+  else if (g_advancedSettings.m_lcdProgressBar1 == "menu")
+  {
+    SetProgressBar1((on) ? 0.0 : 100.0);
+  }
+  else
+  {
+    SetProgressBar1(0.0);
+  }
+
+  if (g_advancedSettings.m_lcdProgressBar2 == "progress")
+  {
+    SetProgressBar2((on) ? g_application.GetPercentage() : 0.0);
+  }
+  else if (g_advancedSettings.m_lcdProgressBar2 == "volume")
+  {
+    SetProgressBar2(g_application.GetVolume());
+  }
+  else if (g_advancedSettings.m_lcdProgressBar2 == "menu")
+  {
+    SetProgressBar2((on) ? 0.0 : 100.0);
+  }
+  else
+  {
+    SetProgressBar2(0.0);
+  }
+
+  if (g_advancedSettings.m_lcdProgressBar3 == "progress")
+  {
+    SetProgressBar3((on) ? g_application.GetPercentage() : 0.0);
+  }
+  else if (g_advancedSettings.m_lcdProgressBar3 == "volume")
+  {
+    SetProgressBar3(g_application.GetVolume());
+  }
+  else if (g_advancedSettings.m_lcdProgressBar3 == "menu")
+  {
+    SetProgressBar3((on) ? 0.0 : 100.0);
+  }
+  else
+  {
+    SetProgressBar3(0.0);
+  }
+
+  if (g_advancedSettings.m_lcdProgressBar4 == "progress")
+  {
+    SetProgressBar4((on) ? g_application.GetPercentage() : 0.0);
+  }
+  else if (g_advancedSettings.m_lcdProgressBar4 == "volume")
+  {
+    SetProgressBar4(g_application.GetVolume());
+  }
+  else if (g_advancedSettings.m_lcdProgressBar4 == "menu")
+  {
+    SetProgressBar4((on) ? 0.0 : 100.0);
+  }
+  else
+  {
+    SetProgressBar4(0.0);
+  }
 }
