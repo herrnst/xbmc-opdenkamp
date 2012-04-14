@@ -93,7 +93,7 @@
 class XLCDproc_imon: public XLCDproc
 {
 public:
-  XLCDproc_imon();
+  XLCDproc_imon(int m_localsockfd);
   virtual ~XLCDproc_imon(void);
 
   // States whether this device sends the icon-information by itself.

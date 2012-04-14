@@ -25,13 +25,15 @@
 #include "XLCDproc_imon.h"
 #include "../utils/log.h"
 
-XLCDproc_imon::XLCDproc_imon()
+XLCDproc_imon::XLCDproc_imon(int m_localsockfd)
 {
   // initialize class variables
   outputValue = 0;
   outputValueProgressBars = 0;
   outputValueOld = 1; // for correct icon-initialization this needs to be different to the actual value
   outputValueProgressBarsOld = 1; // for correct icon-initialization this needs to be different to the actual value
+
+  m_sockfd = m_localsockfd;
 
   m_outputTimer.StartZero();
 }

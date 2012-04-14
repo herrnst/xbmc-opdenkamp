@@ -58,7 +58,7 @@
 class XLCDproc_mdm166a: public XLCDproc
 {
 public:
-  XLCDproc_mdm166a();
+  XLCDproc_mdm166a(int m_localsockfd);
   virtual ~XLCDproc_mdm166a(void);
 
   // States whether this device sends the icon-information by itself.
