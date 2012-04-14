@@ -159,6 +159,10 @@ class CAdvancedSettings
     int m_lcdScrolldelay;
     CStdString m_lcdHostName;
     int m_lcdRefreshRate;
+    CStdString m_lcdProgressBar1;
+    CStdString m_lcdProgressBar2;
+    CStdString m_lcdProgressBar3;
+    CStdString m_lcdProgressBar4;
 
     int m_autoDetectPingTime;
 
