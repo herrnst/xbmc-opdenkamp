@@ -75,6 +75,21 @@ bool XLCDproc_imon::SendIconStatesToDisplay()
   return true;
 }
 
+void XLCDproc_imon::HandleStop(void)
+{
+  CStdString clearcmd = "";
+
+  // clear any icons
+  outputValue = 0;
+
+  clearcmd.Format("output %d\n", outputValue);
+
+  if (write(m_sockfd, clearcmd.c_str(), clearcmd.size()) < 0)
+    CLog::Log(LOGERROR, "XLCDproc::%s - Unable to write to socket", __FUNCTION__);
+
+  usleep(100000); // we have to wait a bit until the message has been sent to the display
+}
+
 void XLCDproc_imon::ResetModeIcons(void)
 {
   outputValue &= ~(7 << IMON_OUTPUT_TOP_ROW); // reset entire row
