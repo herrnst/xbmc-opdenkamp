@@ -44,6 +44,7 @@ public:
   virtual int  GetRows();
 
   // Handlers for icon-handling sub-instances
+  bool         SendIconStatesToDisplay();
   void         HandleStop();
 
 protected:
