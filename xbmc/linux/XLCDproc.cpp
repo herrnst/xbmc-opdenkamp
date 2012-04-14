@@ -438,3 +438,232 @@ void XLCDproc::HandleStop(void)
     m_lcdprocIconDevice->HandleStop();
 }
 
+void XLCDproc::SetIconMovie(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconMovie(on);
+}
+
+void XLCDproc::SetIconMusic(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconMusic(on);
+}
+
+void XLCDproc::SetIconWeather(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconWeather(on);
+}
+
+void XLCDproc::SetIconTV(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconTV(on);
+}
+
+void XLCDproc::SetIconPhoto(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconPhoto(on);
+}
+
+void XLCDproc::SetIconResolution(LCD_RESOLUTION_INDICATOR resolution)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconResolution(resolution);
+}
+
+void XLCDproc::SetProgressBar1(double progress)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetProgressBar1(progress);
+}
+
+void XLCDproc::SetProgressBar2(double progress)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetProgressBar2(progress);
+}
+
+void XLCDproc::SetProgressBar3(double progress)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetProgressBar3(progress);
+}
+
+void XLCDproc::SetProgressBar4(double progress)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetProgressBar4(progress);
+}
+
+void XLCDproc::SetIconMute(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+      m_lcdprocIconDevice->SetIconMute(on);
+}
+
+void XLCDproc::SetIconPlaying(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconPlaying(on);
+}
+
+void XLCDproc::SetIconPause(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconPause(on);
+}
+
+void XLCDproc::SetIconRepeat(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconRepeat(on);
+}
+
+void XLCDproc::SetIconShuffle(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconShuffle(on);
+}
+
+void XLCDproc::SetIconAlarm(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconAlarm(on);
+}
+
+void XLCDproc::SetIconRecord(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconRecord(on);
+}
+
+void XLCDproc::SetIconVolume(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconVolume(on);
+}
+
+void XLCDproc::SetIconTime(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconTime(on);
+}
+
+void XLCDproc::SetIconSPDIF(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconSPDIF(on);
+}
+
+void XLCDproc::SetIconDiscIn(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconDiscIn(on);
+}
+
+void XLCDproc::SetIconSource(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconSource(on);
+}
+
+void XLCDproc::SetIconFit(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconFit(on);
+}
+
+void XLCDproc::SetIconSCR1(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconSCR1(on);
+}
+
+void XLCDproc::SetIconSCR2(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconSCR2(on);
+}
+
+// codec icons - video: video stream format ###################################
+void XLCDproc::SetIconMPEG(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconMPEG(on);
+}
+
+void XLCDproc::SetIconDIVX(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconDIVX(on);
+}
+
+void XLCDproc::SetIconXVID(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconXVID(on);
+}
+
+void XLCDproc::SetIconWMV(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconWMV(on);
+}
+
+// codec icons - video: audio stream format #################################
+void XLCDproc::SetIconMPGA(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconMPGA(on);
+}
+
+void XLCDproc::SetIconAC3(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconAC3(on);
+}
+
+void XLCDproc::SetIconDTS(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconDTS(on);
+}
+
+void XLCDproc::SetIconVWMA(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconVWMA(on);
+}
+// codec icons - audio format ###############################################
+void XLCDproc::SetIconMP3(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconMP3(on);
+}
+
+void XLCDproc::SetIconOGG(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconOGG(on);
+}
+
+void XLCDproc::SetIconAWMA(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconAWMA(on);
+}
+
+void XLCDproc::SetIconWAV(bool on)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconWAV(on);
+}
+
+void XLCDproc::SetIconAudioChannels(int channels)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->SetIconAudioChannels(channels);
+}
