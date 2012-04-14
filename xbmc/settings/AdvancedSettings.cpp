@@ -123,6 +123,10 @@ void CAdvancedSettings::Initialize()
   m_lcdScrolldelay = 1;
   m_lcdHostName = "localhost";
   m_lcdRefreshRate = 4; // in Hertz
+  m_lcdProgressBar1 = "progress";
+  m_lcdProgressBar2 = "volume";
+  m_lcdProgressBar3 = "none";
+  m_lcdProgressBar4 = "none";
 
   m_autoDetectPingTime = 30;
 
@@ -653,6 +657,10 @@ void CAdvancedSettings::ParseSettingsFile(const CStdString &file)
     XMLUtils::GetInt(pElement, "scrolldelay", m_lcdScrolldelay, -8, 8);
     XMLUtils::GetString(pElement, "hostname", m_lcdHostName);
     XMLUtils::GetInt(pElement, "refreshrate", m_lcdRefreshRate, 1, 20);
+    XMLUtils::GetString(pElement, "progressbar1", m_lcdProgressBar1);
+    XMLUtils::GetString(pElement, "progressbar2", m_lcdProgressBar2);
+    XMLUtils::GetString(pElement, "progressbar3", m_lcdProgressBar3);
+    XMLUtils::GetString(pElement, "progressbar4", m_lcdProgressBar4);
   }
   pElement = pRootElement->FirstChildElement("network");
   if (pElement)
