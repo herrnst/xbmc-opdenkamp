@@ -424,6 +424,14 @@ void XLCDproc::Process()
 {
 }
 
+bool XLCDproc::SendIconStatesToDisplay()
+{
+  if (m_lcdprocIconDevice != NULL)
+    return m_lcdprocIconDevice->SendIconStatesToDisplay();
+
+  return true;
+}
+
 void XLCDproc::HandleStop(void)
 {
   if (m_lcdprocIconDevice != NULL)
