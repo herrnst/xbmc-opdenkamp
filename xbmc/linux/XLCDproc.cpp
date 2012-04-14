@@ -231,7 +231,7 @@ void XLCDproc::RecognizeAndSetIconDriver()
     {
       CLog::Log(LOGINFO, "XLCDproc::%s - Driver is: %s", __FUNCTION__,
           "SoundGraph iMON LCD driver");
-      m_lcdprocIconDevice = new XLCDproc_imon();
+      m_lcdprocIconDevice = new XLCDproc_imon(m_sockfd);
       m_iCharsetTab = LCD_CHARSET_TAB_IMONMDM;
       break;
     }
@@ -239,7 +239,7 @@ void XLCDproc::RecognizeAndSetIconDriver()
     {
       CLog::Log(LOGINFO, "XLCDproc::%s - Driver is: %s", __FUNCTION__,
                 "Targa USB Graphic Vacuum Fluorescent Display (mdm166a)");
-      m_lcdprocIconDevice = new XLCDproc_mdm166a();
+      m_lcdprocIconDevice = new XLCDproc_mdm166a(m_sockfd);
       m_iCharsetTab = LCD_CHARSET_TAB_IMONMDM;
       break;
     }

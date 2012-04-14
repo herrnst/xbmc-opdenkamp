@@ -25,10 +25,12 @@
 #include "XLCDproc_mdm166a.h"
 #include "../utils/log.h"
 
-XLCDproc_mdm166a::XLCDproc_mdm166a()
+XLCDproc_mdm166a::XLCDproc_mdm166a(int m_localsockfd)
 {
   outputValue = 0;
   outputValueOld = 1; // for correct icon-initialization this needs to be different to the actual value
+
+  m_sockfd = m_localsockfd;
 }
 
 XLCDproc_mdm166a::~XLCDproc_mdm166a(void)
