@@ -51,6 +51,11 @@ public:
                         CUSTOM_CHARSET_BIGCHAR,
                         CUSTOM_CHARSET_MAX
                 };
+  enum LCD_RESOLUTION_INDICATOR {
+                        LCD_RESOLUTION_INDICATOR_NONE = 0,
+                        LCD_RESOLUTION_INDICATOR_SD,
+                        LCD_RESOLUTION_INDICATOR_HD
+                };
   virtual void Initialize();
   virtual bool IsConnected();
   virtual void Stop() = 0;

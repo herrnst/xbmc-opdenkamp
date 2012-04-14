@@ -26,6 +26,8 @@
 #include "../utils/TimeUtils.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/GUISettings.h"
+#include "XLCDproc_imon.h"
+#include "XLCDproc_mdm166a.h"
 
 #include <sys/types.h>
 #include <sys/socket.h>
