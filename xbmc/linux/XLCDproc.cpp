@@ -49,10 +49,16 @@ XLCDproc::XLCDproc()
   m_lastInitAttempt = 0;
   m_initRetryInterval = INIT_RETRY_INTERVAL;
   m_used = true;
+  m_lcdprocIconDevice = NULL;
 }
 
 XLCDproc::~XLCDproc()
 {
+  if(m_lcdprocIconDevice != NULL)
+  {
+    delete m_lcdprocIconDevice;
+    m_lcdprocIconDevice = NULL;
+  }
 }
 
 void XLCDproc::Initialize()
@@ -74,6 +80,8 @@ void XLCDproc::Initialize()
     m_initRetryInterval = INIT_RETRY_INTERVAL;
 
     m_bStop = false;
+
+    RecognizeAndSetIconDriver();
   }
   else
   {
@@ -178,8 +186,71 @@ bool XLCDproc::Connect()
   return true;
 }
 
+void XLCDproc::RecognizeAndSetIconDriver()
+{
+  // Receive LCDproc data to determine the driver
+  char reply[1024];
+
+  // Initialisation delays
+  unsigned int msWaitTime = 10000;
+  unsigned int msTimeout = 250000;
+
+  // Get information about the driver
+  CStdString info;
+  info = "info\n";
+
+  if (write(m_sockfd,info.c_str(),info.size()) == -1)
+  {
+    CLog::Log(LOGERROR, "XLCDproc::%s - Unable to write to socket", __FUNCTION__);
+    return;
+  }
+
+  for (unsigned int ms = 0; ms < msTimeout; ms += msWaitTime)
+  {
+    usleep(msWaitTime); // wait for the answer
+
+    // Receive server's reply
+    if (read(m_sockfd, reply, 1024) < 0)
+    {
+      CLog::Log(LOGERROR, "XLCDproc::%s - Unable to read from socket", __FUNCTION__);
+    }
+    else
+    {
+      CLog::Log(LOGINFO, "XLCDproc::%s - Plain driver name is: %s", __FUNCTION__, reply);
+    }
+
+    // to support older and newer versions of the lcdproc driver for the imon-lcd:
+    CStdString driverStringImonLcd = "SoundGraph iMON";
+    CStdString driverStringImonLcd2 = "LCD";
+
+    CStdString driverStringMdm166a = "mdm166a";
+
+    if ((strstr(reply, driverStringImonLcd.c_str()) != NULL) && (strstr(reply,
+        driverStringImonLcd2.c_str()) != NULL))
+    {
+      CLog::Log(LOGINFO, "XLCDproc::%s - Driver is: %s", __FUNCTION__,
+          "SoundGraph iMON LCD driver");
+      m_lcdprocIconDevice = new XLCDproc_imon();
+      break;
+    }
+    else if (strstr(reply, driverStringMdm166a.c_str()) != NULL)
+    {
+      CLog::Log(LOGINFO, "XLCDproc::%s - Driver is: %s", __FUNCTION__,
+                "Targa USB Graphic Vacuum Fluorescent Display (mdm166a)");
+      m_lcdprocIconDevice = new XLCDproc_mdm166a();
+      break;
+    }
+  }
+}
+
 void XLCDproc::CloseSocket()
 {
+  if(m_lcdprocIconDevice != NULL)
+  {
+    delete m_lcdprocIconDevice;
+    m_lcdprocIconDevice = NULL;
+  }
+
   if (m_sockfd != -1)
   {
     shutdown(m_sockfd, SHUT_RDWR);
@@ -257,6 +328,9 @@ void XLCDproc::SetContrast(int iContrast)
 
 void XLCDproc::Stop()
 {
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->HandleStop();
+
   CloseSocket();
   m_bStop = true;
 }
@@ -348,5 +422,11 @@ void XLCDproc::SetLine(int iLine, const CStdString& strLine)
 
 void XLCDproc::Process()
 {
+}
+
+void XLCDproc::HandleStop(void)
+{
+  if (m_lcdprocIconDevice != NULL)
+    m_lcdprocIconDevice->HandleStop();
 }
 

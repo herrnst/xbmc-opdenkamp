@@ -64,6 +64,7 @@ public:
   // States whether this device sends the icon-information by itself.
   // Returns true, if the caller does not have to care about sending the information.
   virtual bool SendIconStatesToDisplay();
+  virtual void HandleStop(void);
 
   virtual void SetIconMovie(bool on);
   virtual void SetIconMusic(bool on);

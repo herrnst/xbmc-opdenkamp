@@ -60,6 +60,21 @@ bool XLCDproc_mdm166a::SendIconStatesToDisplay()
   return true;
 }
 
+void XLCDproc_mdm166a::HandleStop(void)
+{
+  CStdString clearcmd = "";
+
+  // clear any icons
+  outputValue = 0;
+
+  clearcmd.Format("output %d\n", outputValue);
+
+  if (write(m_sockfd, clearcmd.c_str(), clearcmd.size()) < 0)
+    CLog::Log(LOGERROR, "XLCDproc::%s - Unable to write to socket", __FUNCTION__);
+
+  usleep(100000); // we have to wait a bit until the message has been sent to the display
+}
+
 void XLCDproc_mdm166a::ResetModeIcons(void)
 {
   outputValue &= ~(3 << MDM166A_OUTPUT_WLAN_STR); // reset entire block
