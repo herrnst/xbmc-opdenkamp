@@ -430,7 +430,14 @@ void XLCDproc::Process()
 bool XLCDproc::SendIconStatesToDisplay()
 {
   if (m_lcdprocIconDevice != NULL)
-    return m_lcdprocIconDevice->SendIconStatesToDisplay();
+  {
+    if (m_lcdprocIconDevice->SendIconStatesToDisplay() == false)
+    {
+      CLog::Log(LOGERROR, "XLCDproc::%s - Icon state update failed, unable to write to socket", __FUNCTION__);
+      CloseSocket();
+      return false;
+    }
+  }
 
   return true;
 }

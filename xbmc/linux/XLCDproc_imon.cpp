@@ -72,6 +72,8 @@ bool XLCDproc_imon::SendIconStatesToDisplay()
         LOGERROR,
         "XLCDproc::%s - Unable to write 'outputValue' to socket, LCDd not running?",
         __FUNCTION__);
+
+    return false;
   }
 
   return true;
