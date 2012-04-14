@@ -310,6 +310,11 @@ public:
     return m_bTestMode;
   }
 
+  float GetNavigationIdleTime()
+  {
+    return NavigationIdleTime();
+  }
+
   bool IsPresentFrame();
 
   void Minimize();
