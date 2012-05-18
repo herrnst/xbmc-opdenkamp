@@ -22,7 +22,7 @@
  */
 
 #include "threads/Thread.h"
-#include "tinyXML/tinyxml.h"
+#include "utils/XBMCTinyXML.h"
 #include "guilib/GUILabelControl.h"  // for CInfoPortion
 
 class TiXmlNode;
@@ -78,8 +78,9 @@ public:
   void LoadSkin(const CStdString &xmlFile);
   void Reset();
   void Render(LCD_MODE mode);
-  ILCD() : m_disableOnPlay(DISABLE_ON_PLAY_NONE), 
-           m_eCurrentCharset(CUSTOM_CHARSET_DEFAULT) {}
+ ILCD() : CThread("ILCD"),
+          m_disableOnPlay(DISABLE_ON_PLAY_NONE), 
+          m_eCurrentCharset(CUSTOM_CHARSET_DEFAULT) {}
 protected:
   virtual void Process() = 0;
   void StringToLCDCharSet(CStdString& strText, unsigned int iCharsetTab);
