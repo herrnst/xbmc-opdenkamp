@@ -25,7 +25,7 @@
 #include "guilib/GUIFontManager.h"
 #include "guilib/LocalizeStrings.h"
 #include "guilib/DirtyRegion.h"
-#include "lib/tinyXML/tinyxml.h"
+#include "utils/XBMCTinyXML.h"
 #include "utils/log.h"
 #include "utils/Variant.h"
 #include "threads/SystemClock.h"
@@ -702,7 +702,7 @@ bool CGUIEPGGridContainer::OnMessage(CGUIMessage& message)
           m_channelItems.push_back(item);
         }
       }
-      if (m_epgItemsPtr.size() > 0)
+      if (items->Size() > 0)
       {
         itemsPointer.stop = items->Size()-1;
         m_epgItemsPtr.push_back(itemsPointer);
