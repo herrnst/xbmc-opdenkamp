@@ -456,7 +456,7 @@ void CGUISettings::Initialize()
   for(int layout = AE_CH_LAYOUT_2_0; layout < AE_CH_LAYOUT_MAX; ++layout)
     channelLayout.insert(make_pair(34100+layout, layout));
   AddInt(ao, "audiooutput.channellayout", 34100, AE_CH_LAYOUT_2_0, channelLayout, SPIN_CONTROL_TEXT);
-  AddBool(ao, "audiooutput.dontnormalizelevels", 346, true);
+  AddBool(ao, "audiooutput.normalizelevels", 346, false);
   AddBool(ao, "audiooutput.stereoupmix", 252, false);
 
 #if defined(TARGET_DARWIN_IOS)
@@ -948,7 +948,7 @@ void CGUISettings::Initialize()
   AddInt(pvrr, "pvrrecord.marginstart", 19175, 2, 0, 1, 60, SPIN_CONTROL_INT_PLUS, MASK_MINS);
   AddInt(pvrr, "pvrrecord.marginend", 19176, 10, 0, 1, 60, SPIN_CONTROL_INT_PLUS, MASK_MINS);
   AddSeparator(pvrr, "pvrrecord.sep1");
-  AddBool(pvr, "pvrrecord.timernotifications", 19233, true);
+  AddBool(pvrr, "pvrrecord.timernotifications", 19233, true);
 
   CSettingsCategory* pvrpwr = AddCategory(8, "pvrpowermanagement", 14095);
   AddBool(pvrpwr, "pvrpowermanagement.enabled", 305, false);
