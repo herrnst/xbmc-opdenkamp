@@ -595,9 +595,8 @@ bool CPVRManager::ToggleRecordingOnChannel(unsigned int iChannelId)
 {
   bool bReturn = false;
 
-  CPVRChannel *channel;
-  channel = m_channelGroups->GetChannelById(iChannelId);
-  if (!channel)
+  CPVRChannelPtr channel = m_channelGroups->GetChannelById(iChannelId);
+  if (!channel->IsValid())
     return bReturn;
 
   if (m_addons->HasTimerSupport(channel->ClientID()))
@@ -605,7 +604,7 @@ bool CPVRManager::ToggleRecordingOnChannel(unsigned int iChannelId)
     /* timers are supported on this channel */
     if (!channel->IsRecording())
     {
-      CPVRTimerInfoTag *newTimer = m_timers->InstantTimer(channel);
+      CPVRTimerInfoTag *newTimer = m_timers->InstantTimer(*channel);
       if (!newTimer)
         CGUIDialogOK::ShowAndGetInput(19033,0,19164,0);
       else
@@ -634,7 +633,7 @@ bool CPVRManager::StartRecordingOnPlayingChannel(bool bOnOff)
     /* timers are supported on this channel */
     if (bOnOff && !channel.IsRecording())
     {
-      CPVRTimerInfoTag *newTimer = m_timers->InstantTimer(&channel);
+      CPVRTimerInfoTag *newTimer = m_timers->InstantTimer(channel);
       if (!newTimer)
         CGUIDialogOK::ShowAndGetInput(19033,0,19164,0);
       else
@@ -798,22 +797,31 @@ bool CPVRManager::OpenRecordedStream(const CPVRRecording &tag)
 
 void CPVRManager::CloseStream(void)
 {
-  CSingleLock lock(m_critSection);
+  CPVRChannel channel;
+  bool bPersistChannel(false);
 
-  if (m_addons->IsReadingLiveStream())
   {
-    CPVRChannel channel;
-    if (m_addons->GetPlayingChannel(channel))
+    CSingleLock lock(m_critSection);
+
+    if (m_addons->IsReadingLiveStream())
     {
-      /* store current time in iLastWatched */
-      time_t tNow;
-      CDateTime::GetCurrentDateTime().GetAsTime(tNow);
-      channel.SetLastWatched(tNow, true);
+      CPVRChannel channel;
+      if (m_addons->GetPlayingChannel(channel))
+      {
+        /* store current time in iLastWatched */
+        time_t tNow;
+        CDateTime::GetCurrentDateTime().GetAsTime(tNow);
+        channel.SetLastWatched(tNow);
+        bPersistChannel = true;
+      }
     }
+
+    m_addons->CloseStream();
+    SAFE_DELETE(m_currentFile);
   }
 
-  m_addons->CloseStream();
-  SAFE_DELETE(m_currentFile);
+  if (bPersistChannel)
+    channel.Persist();
 }
 
 void CPVRManager::UpdateCurrentFile(void)
