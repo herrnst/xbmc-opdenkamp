@@ -31,7 +31,7 @@
 #include "threads/SystemClock.h"
 #include "GUIInfoManager.h"
 
-#include "epg/EpgInfoTag.h"
+#include "epg/Epg.h"
 #include "pvr/channels/PVRChannel.h"
 
 #include "GUIEPGGridContainer.h"
@@ -688,7 +688,7 @@ bool CGUIEPGGridContainer::OnMessage(CGUIMessage& message)
         if (iCurrentChannelNumber != iLastChannelNumber)
         {
           CPVRChannelPtr channel = tag->ChannelTag();
-          if (!channel->IsValid())
+          if (!channel)
             continue;
 
           if (i > 0)
