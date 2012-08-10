@@ -26,7 +26,7 @@
 #include "dialogs/GUIDialogKaiToast.h"
 #include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogYesNo.h"
-#include "dialogs/GUIDialogKeyboard.h"
+#include "guilib/GUIKeyboardFactory.h"
 #include "guilib/GUIWindowManager.h"
 #include "GUIInfoManager.h"
 #include "pvr/PVRManager.h"
@@ -201,9 +201,6 @@ void CGUIWindowPVRChannels::UpdateData(bool bUpdateSelectedFile /* = true */)
   CLog::Log(LOGDEBUG, "CGUIWindowPVRChannels - %s - update window '%s'. set view to %d",
       __FUNCTION__, GetName(), m_iControlList);
   m_bUpdateRequired = false;
-
-  g_EpgContainer.RegisterObserver(this);
-  g_PVRTimers->RegisterObserver(this);
 
   /* lock the graphics context while updating */
   CSingleLock graphicsLock(g_graphicsContext);
@@ -531,7 +528,7 @@ bool CGUIWindowPVRChannels::OnContextButtonFilter(CFileItem *item, CONTEXT_BUTTO
   if (button == CONTEXT_BUTTON_FILTER)
   {
     CStdString filter = m_parent->GetProperty("filter").asString();
-    CGUIDialogKeyboard::ShowAndGetFilter(filter, false);
+    CGUIKeyboardFactory::ShowAndGetFilter(filter, false);
     m_parent->OnFilterItems(filter);
 
     bReturn = true;

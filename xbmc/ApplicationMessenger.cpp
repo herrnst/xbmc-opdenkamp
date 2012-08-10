@@ -292,10 +292,9 @@ void CApplicationMessenger::ProcessMessage(ThreadMessage *pMsg)
 
     case TMSG_RESTARTAPP:
       {
-#ifdef _WIN32
+#if defined(TARGET_WINDOWS) || defined(TARGET_LINUX)
         g_application.Stop(EXITCODE_RESTARTAPP);
 #endif
-        // TODO
       }
       break;
 
@@ -793,6 +792,19 @@ void CApplicationMessenger::ProcessMessage(ThreadMessage *pMsg)
           g_application.GetSplash()->Show(pMsg->strParam);
       }
       break;
+      
+    case TMSG_DISPLAY_SETUP:
+    {
+      *((bool*)pMsg->lpVoid) = g_application.InitWindow();
+      g_application.ReloadSkin();
+    }
+    break;
+    
+    case TMSG_DISPLAY_DESTROY:
+    {
+      *((bool*)pMsg->lpVoid) = g_application.DestroyWindow();
+    }
+    break;
   }
 }
 
@@ -1170,7 +1182,7 @@ void CApplicationMessenger::Show(CGUIDialog *pDialog)
 void CApplicationMessenger::Close(CGUIWindow *window, bool forceClose, bool waitResult /*= true*/, int nextWindowID /*= 0*/, bool enableSound /*= true*/)
 {
   ThreadMessage tMsg = {TMSG_GUI_WINDOW_CLOSE, nextWindowID};
-  tMsg.dwParam2 = (DWORD)(forceClose ? 0x01 : 0 | enableSound ? 0x02 : 0);
+  tMsg.dwParam2 = (DWORD)((forceClose ? 0x01 : 0) | (enableSound ? 0x02 : 0));
   tMsg.lpVoid = window;
   SendMessage(tMsg, waitResult);
 }
@@ -1237,4 +1249,26 @@ void CApplicationMessenger::SetSplashMessage(const CStdString& message)
 void CApplicationMessenger::SetSplashMessage(int stringID)
 {
   SetSplashMessage(g_localizeStrings.Get(stringID));
+}
+
+bool CApplicationMessenger::SetupDisplay()
+{
+  bool result;
+  
+  ThreadMessage tMsg = {TMSG_DISPLAY_SETUP};
+  tMsg.lpVoid = (void*)&result;
+  SendMessage(tMsg, true);
+  
+  return result;
+}
+
+bool CApplicationMessenger::DestroyDisplay()
+{
+  bool result;
+  
+  ThreadMessage tMsg = {TMSG_DISPLAY_DESTROY};
+  tMsg.lpVoid = (void*)&result;
+  SendMessage(tMsg, true);
+  
+  return result;
 }

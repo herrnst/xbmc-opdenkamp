@@ -180,18 +180,15 @@ class CAdvancedSettings
     CStdString m_lcdProgressBar3;
     CStdString m_lcdProgressBar4;
 
-    int m_autoDetectPingTime;
-
     int m_songInfoDuration;
-    int m_busyDialogDelay;
     int m_logLevel;
     int m_logLevelHint;
     CStdString m_cddbAddress;
-    
+
     //airtunes + airplay
     bool m_logEnableAirtunes;
     int m_airTunesPort;
-    int m_airPlayPort;    
+    int m_airPlayPort;
 
     bool m_handleMounting;
 
@@ -303,7 +300,7 @@ class CAdvancedSettings
 
     bool m_fullScreen;
     bool m_startFullScreen;
-	bool m_showExitButton; /* Ideal for appliances to hide a 'useless' button */
+    bool m_showExitButton; /* Ideal for appliances to hide a 'useless' button */
     bool m_canWindowed;
     bool m_splashImage;
     bool m_alwaysOnTop;  /* makes xbmc to run always on top .. osx/win32 only .. */
@@ -365,6 +362,8 @@ class CAdvancedSettings
 
     float GetDisplayLatency(float refreshrate);
     bool m_initialized;
+
+    void SetDebugMode(bool debug);
 };
 
 XBMC_GLOBAL(CAdvancedSettings,g_advancedSettings);

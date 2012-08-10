@@ -40,6 +40,8 @@ using namespace ADDON;
 using namespace PVR;
 using namespace EPG;
 
+#define DEFAULT_INFO_STRING_VALUE "unknown"
+
 CPVRClient::CPVRClient(const AddonProps& props) :
     CAddonDll<DllPVRClient, PVRClient, PVR_PROPERTIES>(props)
 {
@@ -54,98 +56,96 @@ CPVRClient::CPVRClient(const cp_extension_t *ext) :
 
 CPVRClient::~CPVRClient(void)
 {
-  if (m_pInfo)
-    SAFE_DELETE(m_pInfo);
+  Destroy();
+  SAFE_DELETE(m_pInfo);
 }
 
-void CPVRClient::ResetProperties(void)
+void CPVRClient::ResetProperties(int iClientId /* = PVR_INVALID_CLIENT_ID */)
 {
    CLog::Log(LOGDEBUG, "PVR - %s - creating PVR add-on instance '%s'", __FUNCTION__, Name().c_str());
 
   /* initialise members */
-  if (!m_pInfo)
-    m_pInfo               = new PVR_PROPERTIES;
-  m_pInfo->iClientId      = -1;
-  m_pInfo->strClientPath  = "";
-  m_pInfo->strUserPath    = "";
-
-  m_bReadyToUse           = false;
-  m_bGotBackendName       = false;
-  m_bGotBackendVersion    = false;
-  m_bGotConnectionString  = false;
-  m_bGotFriendlyName      = false;
-  m_bGotAddonCapabilities = false;
-  m_strBackendVersion     = "unknown";
-  m_strConnectionString   = "unknown";
-  m_strFriendlyName       = "unknown";
-  m_strHostName           = "unknown";
-  m_strBackendName        = "unknown";
-  ResetAddonCapabilities();
-}
-
-void CPVRClient::ResetAddonCapabilities(void)
-{
-  m_addonCapabilities.bSupportsChannelSettings  = false;
-  m_addonCapabilities.bSupportsTimeshift        = false;
-  m_addonCapabilities.bSupportsEPG              = false;
-  m_addonCapabilities.bSupportsTV               = false;
-  m_addonCapabilities.bSupportsRadio            = false;
-  m_addonCapabilities.bSupportsRecordings       = false;
-  m_addonCapabilities.bSupportsTimers           = false;
-  m_addonCapabilities.bSupportsChannelGroups    = false;
-  m_addonCapabilities.bSupportsChannelScan      = false;
-  m_addonCapabilities.bHandlesInputStream       = false;
-  m_addonCapabilities.bHandlesDemuxing          = false;
-  m_addonCapabilities.bSupportsRecordingFolders = false;
-  m_addonCapabilities.bSupportsRecordingPlayCount = false;
-  m_addonCapabilities.bSupportsLastPlayedPosition = false;
-}
-
-bool CPVRClient::Create(int iClientId)
-{
-  m_pInfo->iClientId = iClientId;
+  SAFE_DELETE(m_pInfo);
+  m_pInfo                 = new PVR_PROPERTIES;
   CStdString userpath     = CSpecialProtocol::TranslatePath(Profile());
   m_pInfo->strUserPath    = userpath.c_str();
   CStdString clientpath   = CSpecialProtocol::TranslatePath(Path());
   m_pInfo->strClientPath  = clientpath.c_str();
 
+  m_menuhooks.clear();
+  m_bReadyToUse           = false;
+  m_iClientId             = PVR_INVALID_CLIENT_ID;
+  m_strBackendVersion     = DEFAULT_INFO_STRING_VALUE;
+  m_strConnectionString   = DEFAULT_INFO_STRING_VALUE;
+  m_strFriendlyName       = DEFAULT_INFO_STRING_VALUE;
+  m_strBackendName        = DEFAULT_INFO_STRING_VALUE;
+  ResetAddonCapabilities(m_addonCapabilities);
+}
+
+void CPVRClient::ResetAddonCapabilities(PVR_ADDON_CAPABILITIES &addonCapabilities)
+{
+  addonCapabilities.bSupportsChannelSettings    = false;
+  addonCapabilities.bSupportsTimeshift          = false;
+  addonCapabilities.bSupportsEPG                = false;
+  addonCapabilities.bSupportsTV                 = false;
+  addonCapabilities.bSupportsRadio              = false;
+  addonCapabilities.bSupportsRecordings         = false;
+  addonCapabilities.bSupportsTimers             = false;
+  addonCapabilities.bSupportsChannelGroups      = false;
+  addonCapabilities.bSupportsChannelScan        = false;
+  addonCapabilities.bHandlesInputStream         = false;
+  addonCapabilities.bHandlesDemuxing            = false;
+  addonCapabilities.bSupportsRecordingFolders   = false;
+  addonCapabilities.bSupportsRecordingPlayCount = false;
+  addonCapabilities.bSupportsLastPlayedPosition = false;
+}
+
+bool CPVRClient::Create(int iClientId)
+{
+  /* ensure that a previous instance is destroyed */
+  Destroy();
+
+  /* reset all properties to defaults */
+  ResetProperties(iClientId);
+
   /* initialise the add-on */
-  if (CAddonDll<DllPVRClient, PVRClient, PVR_PROPERTIES>::Create())
+  bool bReadyToUse(false);
+  CLog::Log(LOGDEBUG, "PVR - %s - creating PVR add-on instance '%s'", __FUNCTION__, Name().c_str());
+  try
   {
-    SetAddonCapabilities();
-    m_strHostName = m_pStruct->GetConnectionString();
-    m_bReadyToUse = true;
+    if (CAddonDll<DllPVRClient, PVRClient, PVR_PROPERTIES>::Create())
+      bReadyToUse = GetAddonProperties();
   }
-  /* don't log failed inits here because it will spam the log file as this is called in a loop */
-  return m_bReadyToUse;
+  catch (exception &e) { LogException(e, "Create()"); }
+  m_bReadyToUse = bReadyToUse;
+  m_iClientId   = iClientId;
+  return bReadyToUse;
 }
 
 void CPVRClient::Destroy(void)
 {
-  CLog::Log(LOGDEBUG, "PVR - %s - destroying PVR add-on '%s'", __FUNCTION__, GetFriendlyName().c_str());
-  m_bReadyToUse = false;
+  if (!ReadyToUse())
+    return;
 
-  try
-  {
-    /* Tell the client to destroy */
-    CAddonDll<DllPVRClient, PVRClient, PVR_PROPERTIES>::Destroy();
-    m_menuhooks.clear();
-    SAFE_DELETE(m_pInfo);
-  }
-  catch (exception &e)
-  {
-    CLog::Log(LOGERROR, "PVRClient - %s - exception '%s' caught while trying to destroy addon '%s'. please contact the developer of this addon: %s",
-        __FUNCTION__, e.what(), GetFriendlyName().c_str(), Author().c_str());
-  }
+  /* reset 'ready to use' to false */
+  CLog::Log(LOGDEBUG, "PVR - %s - destroying PVR add-on '%s'", __FUNCTION__, GetFriendlyName().c_str());
+    m_bReadyToUse = false;
+
+  /* destroy the add-on */
+  try { CAddonDll<DllPVRClient, PVRClient, PVR_PROPERTIES>::Destroy(); }
+  catch (exception &e) { LogException(e, "Destroy()"); }
+
+  /* reset all properties to defaults */
+  ResetProperties();
 }
 
 void CPVRClient::ReCreate(void)
 {
-  int clientID = m_pInfo->iClientId;
+  int iClientID(m_iClientId);
   Destroy();
-  if (!m_pInfo)
-    m_pInfo               = new PVR_PROPERTIES;
-  Create(clientID);
+  /* recreate the instance */
+  if (iClientID != PVR_INVALID_CLIENT_ID)
+    Create(iClientID);
 }
 
 bool CPVRClient::ReadyToUse(void) const
@@ -155,7 +155,7 @@ bool CPVRClient::ReadyToUse(void) const
 
 int CPVRClient::GetID(void) const
 {
-  return m_pInfo->iClientId;
+  return m_iClientId;
 }
 
 /*!
@@ -163,7 +163,7 @@ int CPVRClient::GetID(void) const
  * @param xbmcGroup The group on XBMC's side.
  * @param addonGroup The group on the addon's side.
  */
-inline void PVRWriteClientGroupInfo(const CPVRChannelGroup &xbmcGroup, PVR_CHANNEL_GROUP &addonGroup)
+void CPVRClient::WriteClientGroupInfo(const CPVRChannelGroup &xbmcGroup, PVR_CHANNEL_GROUP &addonGroup)
 {
   addonGroup.bIsRadio     = xbmcGroup.IsRadio();
   addonGroup.strGroupName = xbmcGroup.GroupName();
@@ -174,7 +174,7 @@ inline void PVRWriteClientGroupInfo(const CPVRChannelGroup &xbmcGroup, PVR_CHANN
  * @param xbmcRecording The recording on XBMC's side.
  * @param addonRecording The recording on the addon's side.
  */
-inline void PVRWriteClientRecordingInfo(const CPVRRecording &xbmcRecording, PVR_RECORDING &addonRecording)
+void CPVRClient::WriteClientRecordingInfo(const CPVRRecording &xbmcRecording, PVR_RECORDING &addonRecording)
 {
   time_t recTime;
   xbmcRecording.RecordingTimeAsUTC().GetAsTime(recTime);
@@ -197,13 +197,13 @@ inline void PVRWriteClientRecordingInfo(const CPVRRecording &xbmcRecording, PVR_
  * @param xbmcTimer The timer on XBMC's side.
  * @param addonTimer The timer on the addon's side.
  */
-inline void PVRWriteClientTimerInfo(const CPVRTimerInfoTag &xbmcTimer, PVR_TIMER &addonTimer)
+void CPVRClient::WriteClientTimerInfo(const CPVRTimerInfoTag &xbmcTimer, PVR_TIMER &addonTimer)
 {
   time_t start, end, firstDay;
   xbmcTimer.StartAsUTC().GetAsTime(start);
   xbmcTimer.EndAsUTC().GetAsTime(end);
   xbmcTimer.FirstDayAsUTC().GetAsTime(firstDay);
-  CFileItemPtr epgTag = xbmcTimer.GetEpgInfoTag();
+  CEpgInfoTagPtr epgTag = xbmcTimer.GetEpgInfoTag();
 
   addonTimer.iClientIndex      = xbmcTimer.m_iClientIndex;
   addonTimer.state             = xbmcTimer.m_state;
@@ -218,7 +218,7 @@ inline void PVRWriteClientTimerInfo(const CPVRTimerInfoTag &xbmcTimer, PVR_TIMER
   addonTimer.startTime         = start - g_advancedSettings.m_iPVRTimeCorrection;
   addonTimer.endTime           = end - g_advancedSettings.m_iPVRTimeCorrection;
   addonTimer.firstDay          = firstDay - g_advancedSettings.m_iPVRTimeCorrection;
-  addonTimer.iEpgUid           = epgTag && epgTag->HasEPGInfoTag() ? epgTag->GetEPGInfoTag()->UniqueBroadcastID() : -1;
+  addonTimer.iEpgUid           = epgTag ? epgTag->UniqueBroadcastID() : -1;
   addonTimer.strSummary        = xbmcTimer.m_strSummary.c_str();
   addonTimer.iMarginStart      = xbmcTimer.m_iMarginStart;
   addonTimer.iMarginEnd        = xbmcTimer.m_iMarginEnd;
@@ -231,7 +231,7 @@ inline void PVRWriteClientTimerInfo(const CPVRTimerInfoTag &xbmcTimer, PVR_TIMER
  * @param xbmcChannel The channel on XBMC's side.
  * @param addonChannel The channel on the addon's side.
  */
-inline void PVRWriteClientChannelInfo(const CPVRChannel &xbmcChannel, PVR_CHANNEL &addonChannel)
+void CPVRClient::WriteClientChannelInfo(const CPVRChannel &xbmcChannel, PVR_CHANNEL &addonChannel)
 {
   addonChannel.iUniqueId         = xbmcChannel.UniqueID();
   addonChannel.iChannelNumber    = xbmcChannel.ClientChannelNumber();
@@ -244,9 +244,53 @@ inline void PVRWriteClientChannelInfo(const CPVRChannel &xbmcChannel, PVR_CHANNE
   addonChannel.strStreamURL      = xbmcChannel.StreamURL().c_str();
 }
 
+bool CPVRClient::GetAddonProperties(void)
+{
+  CStdString strHostName, strBackendName, strConnectionString, strFriendlyName, strBackendVersion;
+  PVR_ADDON_CAPABILITIES addonCapabilities;
+
+  /* get the capabilities */
+  try
+   {
+    ResetAddonCapabilities(addonCapabilities);
+    PVR_ERROR retVal = m_pStruct->GetAddonCapabilities(&addonCapabilities);
+    if (retVal != PVR_ERROR_NO_ERROR)
+    {
+      CLog::Log(LOGERROR, "PVR - couldn't get the capabilities for add-on '%s'. Please contact the developer of this add-on: %s", GetFriendlyName().c_str(), Author().c_str());
+      return false;
+    }
+   }
+  catch (exception &e) { LogException(e, "GetAddonCapabilities()"); return false; }
+
+  /* get the name of the backend */
+  try { strBackendName = m_pStruct->GetBackendName(); }
+  catch (exception &e) { LogException(e, "GetBackendName()"); return false;  }
+
+  /* get the connection string */
+  try { strConnectionString = m_pStruct->GetConnectionString(); }
+  catch (exception &e) { LogException(e, "GetConnectionString()"); return false;  }
+
+  /* display name = backend name:connection string */
+  strFriendlyName.Format("%s:%s", strBackendName.c_str(), strConnectionString.c_str());
+
+  /* backend version number */
+  try { strBackendVersion = m_pStruct->GetBackendVersion(); }
+  catch (exception &e) { LogException(e, "GetBackendVersion()"); return false;  }
+
+  /* update the members */
+  m_strBackendName      = strBackendName;
+  m_strConnectionString = strConnectionString;
+  m_strFriendlyName     = strFriendlyName;
+  m_strBackendVersion   = strBackendVersion;
+  m_addonCapabilities   = addonCapabilities;
+
+  return true;
+}
+
 PVR_ADDON_CAPABILITIES CPVRClient::GetAddonCapabilities(void) const
 {
-  return m_addonCapabilities;
+  PVR_ADDON_CAPABILITIES addonCapabilities(m_addonCapabilities);
+  return addonCapabilities;
 }
 
 CStdString CPVRClient::GetBackendName(void)
@@ -311,28 +355,6 @@ PVR_ERROR CPVRClient::GetDriveSpace(long long *iTotal, long long *iUsed)
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
-//PVR_ERROR CPVRClient::GetBackendTime(time_t *localTime, int *iGmtOffset)
-//{
-//  if (!m_bReadyToUse)
-//    return PVR_ERROR_UNKNOWN;
-//
-//  try
-//  {
-//    return m_pStruct->GetBackendTime(localTime, iGmtOffset);
-//  }
-//  catch (exception &e)
-//  {
-//    CLog::Log(LOGERROR, "PVRClient - %s - exception '%s' caught while trying to call GetBackendTime() on addon '%s'. please contact the developer of this addon: %s",
-//        __FUNCTION__, e.what(), GetFriendlyName(), Author().c_str());
-//  }
-//
-//  /* default to 0 on error */
-//  *localTime = 0;
-//  *iGmtOffset = 0;
-//
-//  return PVR_ERROR_NOT_IMPLEMENTED;
-//}
-
 PVR_ERROR CPVRClient::StartChannelScan(void)
 {
   if (!m_bReadyToUse)
@@ -382,7 +404,7 @@ PVR_ERROR CPVRClient::GetEPGForChannel(const CPVRChannel &channel, CEpg *epg, ti
   try
   {
     PVR_CHANNEL addonChannel;
-    PVRWriteClientChannelInfo(channel, addonChannel);
+    WriteClientChannelInfo(channel, addonChannel);
 
     PVR_HANDLE_STRUCT handle;
     handle.callerAddress = this;
@@ -469,7 +491,7 @@ PVR_ERROR CPVRClient::GetChannelGroupMembers(CPVRChannelGroup *group)
     handle.dataAddress = group;
 
     PVR_CHANNEL_GROUP tag;
-    PVRWriteClientGroupInfo(*group, tag);
+    WriteClientGroupInfo(*group, tag);
 
     CLog::Log(LOGDEBUG, "PVRClient - %s - get group members for group '%s' from add-on '%s'",
         __FUNCTION__, tag.strGroupName, GetFriendlyName().c_str());
@@ -594,7 +616,7 @@ PVR_ERROR CPVRClient::DeleteRecording(const CPVRRecording &recording)
   try
   {
     PVR_RECORDING tag;
-    PVRWriteClientRecordingInfo(recording, tag);
+    WriteClientRecordingInfo(recording, tag);
 
     retVal = m_pStruct->DeleteRecording(tag);
 
@@ -621,7 +643,7 @@ PVR_ERROR CPVRClient::RenameRecording(const CPVRRecording &recording)
   try
   {
     PVR_RECORDING tag;
-    PVRWriteClientRecordingInfo(recording, tag);
+    WriteClientRecordingInfo(recording, tag);
 
     retVal = m_pStruct->RenameRecording(tag);
 
@@ -648,7 +670,7 @@ PVR_ERROR CPVRClient::SetRecordingPlayCount(const CPVRRecording &recording, int 
   try
   {
     PVR_RECORDING tag;
-    PVRWriteClientRecordingInfo(recording, tag);
+    WriteClientRecordingInfo(recording, tag);
 
     retVal = m_pStruct->SetRecordingPlayCount(tag, count);
 
@@ -675,7 +697,7 @@ PVR_ERROR CPVRClient::SetRecordingLastPlayedPosition(const CPVRRecording &record
   try
   {
     PVR_RECORDING tag;
-    PVRWriteClientRecordingInfo(recording, tag);
+    WriteClientRecordingInfo(recording, tag);
 
     retVal = m_pStruct->SetRecordingLastPlayedPosition(tag, lastplayedposition);
 
@@ -702,7 +724,7 @@ int CPVRClient::GetRecordingLastPlayedPosition(const CPVRRecording &recording)
   try
   {
     PVR_RECORDING tag;
-    PVRWriteClientRecordingInfo(recording, tag);
+    WriteClientRecordingInfo(recording, tag);
 
     iReturn = m_pStruct->GetRecordingLastPlayedPosition(tag);
   }
@@ -776,7 +798,7 @@ PVR_ERROR CPVRClient::AddTimer(const CPVRTimerInfoTag &timer)
   try
   {
     PVR_TIMER tag;
-    PVRWriteClientTimerInfo(timer, tag);
+    WriteClientTimerInfo(timer, tag);
 
     retVal = m_pStruct->AddTimer(tag);
 
@@ -803,7 +825,7 @@ PVR_ERROR CPVRClient::DeleteTimer(const CPVRTimerInfoTag &timer, bool bForce /* 
   try
   {
     PVR_TIMER tag;
-    PVRWriteClientTimerInfo(timer, tag);
+    WriteClientTimerInfo(timer, tag);
 
     retVal = m_pStruct->DeleteTimer(tag, bForce);
 
@@ -830,7 +852,7 @@ PVR_ERROR CPVRClient::RenameTimer(const CPVRTimerInfoTag &timer, const CStdStrin
   try
   {
     PVR_TIMER tag;
-    PVRWriteClientTimerInfo(timer, tag);
+    WriteClientTimerInfo(timer, tag);
 
     retVal = m_pStruct->UpdateTimer(tag);
 
@@ -857,7 +879,7 @@ PVR_ERROR CPVRClient::UpdateTimer(const CPVRTimerInfoTag &timer)
   try
   {
     PVR_TIMER tag;
-    PVRWriteClientTimerInfo(timer, tag);
+    WriteClientTimerInfo(timer, tag);
 
     retVal = m_pStruct->UpdateTimer(tag);
 
@@ -885,7 +907,7 @@ bool CPVRClient::OpenLiveStream(const CPVRChannel &channel)
   try
   {
     PVR_CHANNEL tag;
-    PVRWriteClientChannelInfo(channel, tag);
+    WriteClientChannelInfo(channel, tag);
     bReturn = m_pStruct->OpenLiveStream(tag);
   }
   catch (exception &e)
@@ -941,7 +963,7 @@ int CPVRClient::GetCurrentClientChannel(void)
 bool CPVRClient::SwitchChannel(const CPVRChannel &channel)
 {
   PVR_CHANNEL tag;
-  PVRWriteClientChannelInfo(channel, tag);
+  WriteClientChannelInfo(channel, tag);
   return m_pStruct->SwitchChannel(tag);
 }
 
@@ -975,7 +997,7 @@ CStdString CPVRClient::GetLiveStreamURL(const CPVRChannel &channel)
   try
   {
     PVR_CHANNEL tag;
-    PVRWriteClientChannelInfo(channel, tag);
+    WriteClientChannelInfo(channel, tag);
     strReturn = m_pStruct->GetLiveStreamURL(tag);
   }
   catch (exception &e)
@@ -993,7 +1015,7 @@ bool CPVRClient::OpenRecordedStream(const CPVRRecording &recording)
     return false;
 
   PVR_RECORDING tag;
-  PVRWriteClientRecordingInfo(recording, tag);
+  WriteClientRecordingInfo(recording, tag);
   return m_pStruct->OpenRecordedStream(tag);
 }
 
@@ -1071,11 +1093,6 @@ ADDON_STATUS CPVRClient::SetSetting(const char *settingName, const void *setting
 //  }
 }
 
-int CPVRClient::GetClientID(void) const
-{
-  return m_pInfo->iClientId;
-}
-
 bool CPVRClient::HaveMenuHooks(void) const
 {
   return m_menuhooks.size() > 0;
@@ -1150,31 +1167,6 @@ void CPVRClient::SetFriendlyName(void)
   m_strFriendlyName.Format("%s:%s", GetBackendName().c_str(), GetConnectionString().c_str());
 }
 
-PVR_ERROR CPVRClient::SetAddonCapabilities(void)
-{
-  if (m_bGotAddonCapabilities)
-    return PVR_ERROR_NO_ERROR;
-
-  ResetAddonCapabilities();
-
-  /* try to get the addon properties */
-  try
-  {
-    PVR_ERROR retVal = m_pStruct->GetAddonCapabilities(&m_addonCapabilities);
-    if (retVal == PVR_ERROR_NO_ERROR)
-      m_bGotAddonCapabilities = true;
-
-    return retVal;
-  }
-  catch (exception &e)
-  {
-    CLog::Log(LOGERROR, "PVRClient - %s - exception '%s' caught while trying to call GetProperties() on addon '%s'. please contact the developer of this addon: %s",
-        __FUNCTION__, e.what(), GetFriendlyName().c_str(), Author().c_str());
-  }
-
-  return PVR_ERROR_SERVER_ERROR;
-}
-
 const char *CPVRClient::ToString(const PVR_ERROR error) const
 {
   switch (error)
@@ -1214,4 +1206,9 @@ bool CPVRClient::LogError(const PVR_ERROR error, const char *strMethod)
     return false;
   }
   return true;
+}
+
+void CPVRClient::LogException(const exception &e, const char *strFunctionName)
+{
+  CLog::Log(LOGERROR, "PVR - exception '%s' caught while trying to call '%s' on add-on '%s'. Please contact the developer of this add-on: %s", e.what(), strFunctionName, GetFriendlyName().c_str(), Author().c_str());
 }

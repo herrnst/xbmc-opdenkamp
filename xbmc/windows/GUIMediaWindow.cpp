@@ -59,11 +59,14 @@
 #include "utils/log.h"
 #include "utils/FileUtils.h"
 #include "guilib/GUIEditControl.h"
-#include "dialogs/GUIDialogKeyboard.h"
+#include "guilib/GUIKeyboardFactory.h"
 #ifdef HAS_PYTHON
 #include "interfaces/python/XBPython.h"
 #endif
 #include "interfaces/Builtins.h"
+#if defined(TARGET_ANDROID)
+#include "xbmc/android/activity/XBMCApp.h"
+#endif
 
 #define CONTROL_BTNVIEWASICONS     2
 #define CONTROL_BTNSORTBY          3
@@ -279,7 +282,7 @@ bool CGUIMediaWindow::OnMessage(CGUIMessage& message)
         if (GetProperty("filter").empty())
         {
           CStdString filter = GetProperty("filter").asString();
-          CGUIDialogKeyboard::ShowAndGetFilter(filter, false);
+          CGUIKeyboardFactory::ShowAndGetFilter(filter, false);
           SetProperty("filter", filter);
         }
         else
@@ -949,6 +952,14 @@ bool CGUIMediaWindow::OnClick(int iItem)
   {
     return XFILE::CPluginDirectory::RunScriptWithParams(pItem->GetPath());
   }
+#if defined(TARGET_ANDROID)
+  else if (pItem->IsAndroidApp())
+  {
+    CStdString appName = URIUtils::GetFileName(pItem->GetPath());
+    CLog::Log(LOGDEBUG, "CGUIMediaWindow::OnClick Trying to run: %s",appName.c_str());
+    return CXBMCApp::StartActivity(appName);
+  }
+#endif
   else
   {
     m_iSelectedItem = m_viewControl.GetSelectedItem();
