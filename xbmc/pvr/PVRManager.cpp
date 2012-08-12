@@ -778,7 +778,7 @@ bool CPVRManager::OpenLiveStream(const CFileItem &channel)
   if (!CheckParentalLock(*channel.GetPVRChannelInfoTag()))
     return bReturn;
 
-  if ((bReturn = m_addons->OpenLiveStream(*channel.GetPVRChannelInfoTag())) != false)
+  if ((bReturn = m_addons->OpenStream(*channel.GetPVRChannelInfoTag())) != false)
   {
     CSingleLock lock(m_critSection);
     if(m_currentFile)
@@ -797,7 +797,7 @@ bool CPVRManager::OpenRecordedStream(const CPVRRecording &tag)
   CLog::Log(LOGDEBUG,"PVRManager - %s - opening recorded stream '%s'",
       __FUNCTION__, tag.m_strFile.c_str());
 
-  if ((bReturn = m_addons->OpenRecordedStream(tag)) != false)
+  if ((bReturn = m_addons->OpenStream(tag)) != false)
   {
     delete m_currentFile;
     m_currentFile = new CFileItem(tag);
@@ -1135,17 +1135,6 @@ bool CPVRManager::IsPlayingRecording(void) const
 bool CPVRManager::IsRunningChannelScan(void) const
 {
   return IsStarted() && m_addons && m_addons->IsRunningChannelScan();
-}
-
-PVR_ADDON_CAPABILITIES CPVRManager::GetCurrentAddonCapabilities(void)
-{
-  PVR_ADDON_CAPABILITIES props;
-  memset(&props, 0, sizeof(PVR_ADDON_CAPABILITIES));
-
-  if (IsStarted() && m_addons)
-    props = m_addons->GetCurrentAddonCapabilities();
-
-  return props;
 }
 
 void CPVRManager::StartChannelScan(void)
