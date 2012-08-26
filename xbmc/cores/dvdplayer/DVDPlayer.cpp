@@ -3305,7 +3305,7 @@ int CDVDPlayer::OnDVDNavResult(void* pData, int iMessage)
 
         //Force an aspect ratio that is set in the dvdheaders if available
         m_CurrentVideo.hint.aspect = pStream->GetVideoAspectRatio();
-        if( m_dvdPlayerAudio.IsInited() )
+        if( m_dvdPlayerVideo.IsInited() )
           m_dvdPlayerVideo.SendMessage(new CDVDMsgDouble(CDVDMsg::VIDEO_SET_ASPECT, m_CurrentVideo.hint.aspect));
 
         m_SelectionStreams.Clear(STREAM_NONE, STREAM_SOURCE_NAV);
@@ -4039,6 +4039,9 @@ CStdString CDVDPlayer::GetPlayingTitle()
 
 bool CDVDPlayer::SwitchChannel(const CPVRChannel &channel)
 {
+  if (!g_PVRManager.CheckParentalLock(channel))
+    return false;
+
   /* set GUI info */
   if (!g_PVRManager.PerformChannelSwitch(channel, true))
     return false;
