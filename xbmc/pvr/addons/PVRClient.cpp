@@ -23,7 +23,7 @@
 #include "PVRClient.h"
 #include "pvr/PVRManager.h"
 #include "epg/Epg.h"
-#include "pvr/channels/PVRChannelGroups.h"
+#include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "pvr/timers/PVRTimers.h"
 #include "pvr/timers/PVRTimerInfoTag.h"
 #include "pvr/recordings/PVRRecordings.h"
@@ -58,16 +58,12 @@ CPVRClient::~CPVRClient(void)
 
 void CPVRClient::ResetProperties(int iClientId /* = PVR_INVALID_CLIENT_ID */)
 {
-   CLog::Log(LOGDEBUG, "PVR - %s - creating PVR add-on instance '%s'", __FUNCTION__, Name().c_str());
-
   /* initialise members */
   SAFE_DELETE(m_pInfo);
-  m_pInfo                 = new PVR_PROPERTIES;
   CStdString userpath     = CSpecialProtocol::TranslatePath(Profile());
   m_pInfo->strUserPath    = userpath.c_str();
   CStdString clientpath   = CSpecialProtocol::TranslatePath(Path());
   m_pInfo->strClientPath  = clientpath.c_str();
-
   m_menuhooks.clear();
   m_bReadyToUse           = false;
   m_iClientId             = iClientId;
@@ -91,6 +87,7 @@ bool CPVRClient::Create(int iClientId)
 
   /* reset all properties to defaults */
   ResetProperties(iClientId);
+  m_pInfo = new PVR_PROPERTIES;
 
   /* initialise the add-on */
   bool bReadyToUse(false);
@@ -911,9 +908,10 @@ bool CPVRClient::SwitchChannel(const CPVRChannel &channel)
 
   if (bSwitched)
   {
+    CPVRChannelPtr currentChannel = g_PVRChannelGroups->GetByUniqueID(channel.UniqueID(), channel.ClientID());
     CSingleLock lock(m_critSection);
     ResetQualityData(m_qualityInfo);
-    m_playingChannel = channel;
+    m_playingChannel = currentChannel;
   }
 
   return bSwitched;
@@ -1135,19 +1133,19 @@ bool CPVRClient::IsPlayingLiveStream(void) const
 bool CPVRClient::IsPlayingLiveTV(void) const
 {
   CSingleLock lock(m_critSection);
-  return m_bReadyToUse && m_bIsPlayingTV && !m_playingChannel.IsRadio();
+  return m_bReadyToUse && m_bIsPlayingTV && !m_playingChannel->IsRadio();
 }
 
 bool CPVRClient::IsPlayingLiveRadio(void) const
 {
   CSingleLock lock(m_critSection);
-  return m_bReadyToUse && m_bIsPlayingTV && m_playingChannel.IsRadio();
+  return m_bReadyToUse && m_bIsPlayingTV && m_playingChannel->IsRadio();
 }
 
 bool CPVRClient::IsPlayingEncryptedChannel(void) const
 {
   CSingleLock lock(m_critSection);
-  return m_bReadyToUse && m_bIsPlayingTV && m_playingChannel.IsEncrypted();
+  return m_bReadyToUse && m_bIsPlayingTV && m_playingChannel->IsEncrypted();
 }
 
 bool CPVRClient::IsPlayingRecording(void) const
@@ -1162,7 +1160,7 @@ bool CPVRClient::IsPlaying(void) const
          IsPlayingRecording();
 }
 
-bool CPVRClient::GetPlayingChannel(CPVRChannel &channel) const
+bool CPVRClient::GetPlayingChannel(CPVRChannelPtr &channel) const
 {
   CSingleLock lock(m_critSection);
   if (m_bReadyToUse && m_bIsPlayingTV)
@@ -1189,8 +1187,18 @@ bool CPVRClient::OpenStream(const CPVRChannel &channel)
   bool bReturn(false);
   CloseStream();
 
-  if(CanPlayChannel(channel))
+  if(!CanPlayChannel(channel))
   {
+    CLog::Log(LOGDEBUG, "add-on '%s' can not play channel '%s'", GetFriendlyName().c_str(), channel.ChannelName().c_str());
+  }
+  else if (!channel.StreamURL().IsEmpty())
+  {
+    CLog::Log(LOGDEBUG, "opening live stream on url '%s'", channel.StreamURL().c_str());
+    bReturn = true;
+  }
+  else
+  {
+    CLog::Log(LOGDEBUG, "opening live stream on for channel '%s'", channel.ChannelName().c_str());
     PVR_CHANNEL tag;
     WriteClientChannelInfo(channel, tag);
 
@@ -1200,8 +1208,9 @@ bool CPVRClient::OpenStream(const CPVRChannel &channel)
 
   if (bReturn)
   {
+    CPVRChannelPtr currentChannel = g_PVRChannelGroups->GetByUniqueID(channel.UniqueID(), channel.ClientID());
     CSingleLock lock(m_critSection);
-    m_playingChannel      = channel;
+    m_playingChannel      = currentChannel;
     m_bIsPlayingTV        = true;
     m_bIsPlayingRecording = false;
   }
