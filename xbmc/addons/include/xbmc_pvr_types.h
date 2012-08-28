@@ -72,7 +72,11 @@ struct DemuxPacket;
 /* using the default avformat's MAX_STREAMS value to be safe */
 #define PVR_STREAM_MAX_STREAMS 20
 
-#define XBMC_PVR_API_VERSION "1.0.0"
+/* current PVR API version */
+#define XBMC_PVR_API_VERSION "1.1.0"
+
+/* min. PVR API version */
+#define XBMC_PVR_MIN_API_VERSION "1.0.0"
 
 #ifdef __cplusplus
 extern "C" {
@@ -321,6 +325,7 @@ extern "C" {
     void         (__cdecl* DemuxAbort)(void);
     void         (__cdecl* DemuxFlush)(void);
     DemuxPacket* (__cdecl* DemuxRead)(void);
+    unsigned int (__cdecl* GetChannelSwitchDelay)(void);
   } PVRClient;
 
 #ifdef __cplusplus
