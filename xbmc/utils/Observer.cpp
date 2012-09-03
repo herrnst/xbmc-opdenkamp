@@ -30,11 +30,10 @@ using namespace ANNOUNCEMENT;
 class ObservableMessageJob : public CJob
 {
 private:
-  Observable              m_observable;
-  std::vector<Observer *> m_observers;
-  CStdString              m_strMessage;
+  Observable        m_observable;
+  ObservableMessage m_message;
 public:
-  ObservableMessageJob(const Observable &obs, const CStdString &strMessage);
+  ObservableMessageJob(const Observable &obs, const ObservableMessage message);
   virtual ~ObservableMessageJob() {}
   virtual const char *GetType() const { return "observable-message-job"; }
 
@@ -135,17 +134,22 @@ void Observable::UnregisterObserver(Observer *obs)
   }
 }
 
-void Observable::NotifyObservers(const CStdString& strMessage /* = "" */, bool bAsync /* = false */)
+void Observable::NotifyObservers(const ObservableMessage message /* = ObservableMessageNone */, bool bAsync /* = false */)
 {
-  CSingleLock lock(m_obsCritSection);
-  if (m_bObservableChanged && !g_application.m_bStop)
+  bool bNotify(false);
+  {
+    CSingleLock lock(m_obsCritSection);
+    if (m_bObservableChanged && !g_application.m_bStop)
+      bNotify = true;
+    m_bObservableChanged = false;
+  }
+
+  if (bNotify)
   {
     if (bAsync && m_bAsyncAllowed)
-      CJobManager::GetInstance().AddJob(new ObservableMessageJob(*this, strMessage), NULL);
+      CJobManager::GetInstance().AddJob(new ObservableMessageJob(*this, message), NULL);
     else
-      SendMessage(this, &m_observers, strMessage);
-
-    m_bObservableChanged = false;
+      SendMessage(*this, message);
   }
 }
 
@@ -164,26 +168,33 @@ void Observable::Announce(AnnouncementFlag flag, const char *sender, const char 
   }
 }
 
-void Observable::SendMessage(Observable *obs, const vector<Observer *> *observers, const CStdString &strMessage)
+void Observable::SendMessage(const Observable& obs, const ObservableMessage message)
 {
-  for(unsigned int ptr = 0; ptr < observers->size(); ptr++)
+  CSingleLock lock(obs.m_obsCritSection);
+  for(int ptr = obs.m_observers.size() - 1; ptr >= 0; ptr--)
   {
-    Observer *observer = observers->at(ptr);
-    if (observer)
-      observer->Notify(*obs, strMessage);
+    if (ptr < obs.m_observers.size())
+    {
+      Observer *observer = obs.m_observers.at(ptr);
+      if (observer)
+      {
+        lock.Leave();
+        observer->Notify(obs, message);
+        lock.Enter();
+      }
+    }
   }
 }
 
-ObservableMessageJob::ObservableMessageJob(const Observable &obs, const CStdString &strMessage)
+ObservableMessageJob::ObservableMessageJob(const Observable &obs, const ObservableMessage message)
 {
-  m_strMessage = strMessage;
+  m_message = message;
   m_observable = obs;
-  m_observers  = obs.m_observers;
 }
 
 bool ObservableMessageJob::DoWork()
 {
-  Observable::SendMessage(&m_observable, &m_observers, m_strMessage);
+  Observable::SendMessage(m_observable, m_message);
 
   return true;
 }

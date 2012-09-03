@@ -103,8 +103,18 @@ bool CPVRClient::Create(int iClientId)
   catch (exception &e) { LogException(e, __FUNCTION__); }
 
   m_bReadyToUse = bReadyToUse;
-  m_iClientId   = iClientId;
+  if (!bReadyToUse)
+    ResetProperties(iClientId);
+
   return bReadyToUse;
+}
+
+bool CPVRClient::DllLoaded(void) const
+{
+  try { return CAddonDll<DllPVRClient, PVRClient, PVR_PROPERTIES>::DllLoaded(); }
+  catch (exception &e) { LogException(e, __FUNCTION__); }
+
+  return false;
 }
 
 void CPVRClient::Destroy(void)
@@ -237,10 +247,11 @@ void CPVRClient::WriteClientChannelInfo(const CPVRChannel &xbmcChannel, PVR_CHAN
   strncpy(addonChannel.strStreamURL, xbmcChannel.StreamURL().c_str(), sizeof(addonChannel.strStreamURL) - 1);
 }
 
-bool CPVRClient::IsCompatibleAPIVersion(const ADDON::AddonVersion &version)
+bool CPVRClient::IsCompatibleAPIVersion(const ADDON::AddonVersion &minVersion, const ADDON::AddonVersion &version)
 {
-  AddonVersion currentVersion = AddonVersion(XBMC_PVR_MIN_API_VERSION);
-  return (version >= currentVersion);
+  AddonVersion myMinVersion = AddonVersion(XBMC_PVR_MIN_API_VERSION);
+  AddonVersion myVersion = AddonVersion(XBMC_PVR_API_VERSION);
+  return (version >= myMinVersion && minVersion <= myVersion);
 }
 
 bool CPVRClient::GetAddonProperties(void)
@@ -249,10 +260,14 @@ bool CPVRClient::GetAddonProperties(void)
   PVR_ADDON_CAPABILITIES addonCapabilities;
 
   /* check the API version */
+  AddonVersion minVersion = AddonVersion("0.0.0");
   try { m_apiVersion = AddonVersion(m_pStruct->GetPVRAPIVersion()); }
   catch (exception &e) { LogException(e, "GetPVRAPIVersion()"); return false;  }
 
-  if (!IsCompatibleAPIVersion(m_apiVersion))
+  try { minVersion = AddonVersion(m_pStruct->GetMininumPVRAPIVersion()); }
+  catch (exception &e) { LogException(e, "GetMininumPVRAPIVersion()"); return false;  }
+
+  if (!IsCompatibleAPIVersion(minVersion, m_apiVersion))
   {
     CLog::Log(LOGERROR, "PVR - Add-on '%s' is using an incompatible API version. Please contact the developer of this add-on: %s", GetFriendlyName().c_str(), Author().c_str());
     return false;
@@ -1040,7 +1055,7 @@ const char *CPVRClient::ToString(const PVR_ERROR error)
   }
 }
 
-bool CPVRClient::LogError(const PVR_ERROR error, const char *strMethod)
+bool CPVRClient::LogError(const PVR_ERROR error, const char *strMethod) const
 {
   if (error != PVR_ERROR_NO_ERROR)
   {
@@ -1051,7 +1066,7 @@ bool CPVRClient::LogError(const PVR_ERROR error, const char *strMethod)
   return true;
 }
 
-void CPVRClient::LogException(const exception &e, const char *strFunctionName)
+void CPVRClient::LogException(const exception &e, const char *strFunctionName) const
 {
   CLog::Log(LOGERROR, "PVR - exception '%s' caught while trying to call '%s' on add-on '%s'. Please contact the developer of this add-on: %s", e.what(), strFunctionName, GetFriendlyName().c_str(), Author().c_str());
 }

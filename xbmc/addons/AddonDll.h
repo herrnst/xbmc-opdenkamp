@@ -53,6 +53,8 @@ namespace ADDON
     virtual void Stop();
     void Destroy();
 
+    bool DllLoaded(void) const;
+
   protected:
     void HandleException(std::exception &e, const char* context);
     bool Initialized() { return m_initialized; }
@@ -186,10 +188,16 @@ bool CAddonDll<TheDll, TheStruct, TheProps>::LoadDll()
     new CAddonStatusHandler(ID(), ADDON_STATUS_UNKNOWN, "Can't load Dll", false);
     return false;
   }
+
   m_pStruct = (TheStruct*)malloc(sizeof(TheStruct));
-  ZeroMemory(m_pStruct, sizeof(TheStruct));
-  m_pDll->GetAddon(m_pStruct);
-  return (m_pStruct != NULL);
+  if (m_pStruct)
+  {
+    ZeroMemory(m_pStruct, sizeof(TheStruct));
+    m_pDll->GetAddon(m_pStruct);
+    return true;
+  }
+
+  return false;
 }
 
 template<class TheDll, typename TheStruct, typename TheProps>
@@ -300,6 +308,12 @@ void CAddonDll<TheDll, TheStruct, TheProps>::Destroy()
     CLog::Log(LOGINFO, "ADDON: Dll Destroyed - %s", Name().c_str());
   }
   m_initialized = false;
+}
+
+template<class TheDll, typename TheStruct, typename TheProps>
+bool CAddonDll<TheDll, TheStruct, TheProps>::DllLoaded(void) const
+{
+  return m_pDll != NULL;
 }
 
 template<class TheDll, typename TheStruct, typename TheProps>

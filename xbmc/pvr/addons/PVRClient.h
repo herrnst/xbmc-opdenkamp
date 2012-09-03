@@ -69,6 +69,11 @@ namespace PVR
     bool Create(int iClientId);
 
     /*!
+     * @return True when the dll for this add-on was loaded, false otherwise (e.g. unresolved symbols)
+     */
+    bool DllLoaded(void) const;
+
+    /*!
      * @brief Destroy the instance of this add-on.
      */
     void Destroy(void);
@@ -469,10 +474,11 @@ namespace PVR
   private:
     /*!
      * @brief Checks whether the provided API version is compatible with XBMC
-     * @param version The version to check
+     * @param minVersion The add-on's XBMC_PVR_MIN_API_VERSION version
+     * @param version The add-on's XBMC_PVR_API_VERSION version
      * @return True when compatible, false otherwise
      */
-    static bool IsCompatibleAPIVersion(const ADDON::AddonVersion &version);
+    static bool IsCompatibleAPIVersion(const ADDON::AddonVersion &minVersion, const ADDON::AddonVersion &version);
 
     /*!
      * @brief Reset the signal quality data to the initial values.
@@ -521,8 +527,8 @@ namespace PVR
      */
     bool CanPlayChannel(const CPVRChannel &channel) const;
 
-    bool LogError(const PVR_ERROR error, const char *strMethod);
-    void LogException(const std::exception &e, const char *strFunctionName);
+    bool LogError(const PVR_ERROR error, const char *strMethod) const;
+    void LogException(const std::exception &e, const char *strFunctionName) const;
 
     bool                   m_bReadyToUse;          /*!< true if this add-on is connected to the backend, false otherwise */
     CStdString             m_strHostName;          /*!< the host name */
