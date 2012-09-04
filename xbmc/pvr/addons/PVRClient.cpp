@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2012 Team XBMC
+ *      Copyright (C) 2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -63,10 +63,10 @@ void CPVRClient::ResetProperties(int iClientId /* = PVR_INVALID_CLIENT_ID */)
   /* initialise members */
   SAFE_DELETE(m_pInfo);
   m_pInfo = new PVR_PROPERTIES;
-  CStdString userpath     = CSpecialProtocol::TranslatePath(Profile());
-  m_pInfo->strUserPath    = userpath.c_str();
-  CStdString clientpath   = CSpecialProtocol::TranslatePath(Path());
-  m_pInfo->strClientPath  = clientpath.c_str();
+  m_strUserPath           = CSpecialProtocol::TranslatePath(Profile());
+  m_pInfo->strUserPath    = m_strUserPath.c_str();
+  m_strClientPath         = CSpecialProtocol::TranslatePath(Path());
+  m_pInfo->strClientPath  = m_strClientPath.c_str();
   m_menuhooks.clear();
   m_bReadyToUse           = false;
   m_iClientId             = iClientId;
