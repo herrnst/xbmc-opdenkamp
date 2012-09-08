@@ -62,6 +62,36 @@ XLCDproc::~XLCDproc()
   }
 }
 
+void XLCDproc::ReadAndFlushSocket()
+{
+  char recvtmp[1024];
+
+  if (read(m_sockfd, recvtmp, 1024) < 0)
+  {
+    // only spam xbmc.log when something serious happened,
+    // EAGAIN literally means "nothing to read", this is fine for us.
+    if(errno != EAGAIN)
+      CLog::Log(LOGERROR, "XLCDproc::ReadAndFlushSocket - Cannot read/clear response");
+  }
+}
+
+bool XLCDproc::SendLCDd(CStdString &command)
+{
+  if (m_sockfd == -1)
+    return false;
+
+  if (write(m_sockfd, command.c_str(), command.size()) < 0)
+  {
+    CLog::Log(LOGERROR, "XLCDproc::SendLCDd - Cannot send command '%s'.",
+      command.c_str());
+    return false;
+  }
+
+  ReadAndFlushSocket();
+
+  return true;
+}
+
 void XLCDproc::Initialize()
 {
   if (!m_used || !g_guiSettings.GetBool("videoscreen.haslcd"))
@@ -83,6 +113,16 @@ void XLCDproc::Initialize()
     m_bStop = false;
 
     RecognizeAndSetIconDriver();
+
+    if (fcntl(m_sockfd, F_SETFL, fcntl(m_sockfd, F_GETFL) | O_NONBLOCK) == -1)
+    {
+      CLog::Log(LOGERROR,
+        "XLCDproc::%s - Cannot set socket to nonblocking mode, stopping LCD",
+          __FUNCTION__);
+
+      CloseSocket();
+      m_bStop = true;
+    }
   }
   else
   {
@@ -178,9 +218,8 @@ bool XLCDproc::Connect()
   }
 
   //Send to server
-  if (write(m_sockfd,cmd.c_str(),cmd.size()) == -1)
+  if (!SendLCDd(cmd))
   {
-    CLog::Log(LOGERROR, "XLCDproc::%s - Unable to write to socket", __FUNCTION__);
     return false;
   }
 
@@ -270,9 +309,8 @@ bool XLCDproc::IsConnected()
   CStdString cmd;
   cmd = "noop\n";
 
-  if (write(m_sockfd,cmd.c_str(),cmd.size()) == -1)
+  if (!SendLCDd(cmd))
   {
-    CLog::Log(LOGERROR, "XLCDproc::%s - Unable to write to socket", __FUNCTION__);
     CloseSocket();
     return false;
   }
@@ -318,12 +356,13 @@ void XLCDproc::SetBackLight(int iLight)
   }
 
   //Send to server
-  if (write(m_sockfd,cmd.c_str(),cmd.size()) == -1)
+  if (!SendLCDd(cmd))
   {
     CLog::Log(LOGERROR, "XLCDproc::%s - Unable to write to socket", __FUNCTION__);
     CloseSocket();
   }
 }
+
 void XLCDproc::SetContrast(int iContrast)
 {
   //TODO: Not sure if you can control contrast from client
@@ -332,7 +371,10 @@ void XLCDproc::SetContrast(int iContrast)
 void XLCDproc::Stop()
 {
   if (m_lcdprocIconDevice != NULL)
+  {
     m_lcdprocIconDevice->HandleStop();
+    ReadAndFlushSocket();
+  }
 
   CloseSocket();
   m_bStop = true;
@@ -348,9 +390,8 @@ void XLCDproc::Suspend()
   cmd = "screen_set xbmc -priority hidden\n";
 
   //Send to server
-  if (write(m_sockfd,cmd.c_str(),cmd.size()) == -1)
+  if (!SendLCDd(cmd))
   {
-    CLog::Log(LOGERROR, "XLCDproc::%s - Unable to write to socket", __FUNCTION__);
     CloseSocket();
   }
 }
@@ -365,9 +406,8 @@ void XLCDproc::Resume()
   cmd = "screen_set xbmc -priority info\n";
 
   //Send to server
-  if (write(m_sockfd,cmd.c_str(),cmd.size()) == -1)
+  if (!SendLCDd(cmd))
   {
-    CLog::Log(LOGERROR, "XLCDproc::%s - Unable to write to socket", __FUNCTION__);
     CloseSocket();
   }
 }
@@ -411,9 +451,8 @@ void XLCDproc::SetLine(int iLine, const CStdString& strLine)
     else
       cmd.Format("widget_set xbmc line%i 1 %i \"%s\"\n", ln, ln, strLineLong.c_str());
 
-    if (write(m_sockfd, cmd.c_str(), cmd.size()) == -1)
+    if (!SendLCDd(cmd))
     {
-      CLog::Log(LOGERROR, "XLCDproc::%s - Unable to write to socket", __FUNCTION__);
       CloseSocket();
       return;
     }
@@ -437,6 +476,8 @@ bool XLCDproc::SendIconStatesToDisplay()
       CloseSocket();
       return false;
     }
+
+    ReadAndFlushSocket();
   }
 
   return true;
@@ -445,7 +486,10 @@ bool XLCDproc::SendIconStatesToDisplay()
 void XLCDproc::HandleStop(void)
 {
   if (m_lcdprocIconDevice != NULL)
+  {
     m_lcdprocIconDevice->HandleStop();
+    ReadAndFlushSocket();
+  }
 }
 
 void XLCDproc::SetIconMovie(bool on)
