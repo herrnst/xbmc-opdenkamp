@@ -43,7 +43,7 @@ public:
   virtual int  GetColumns();
   virtual int  GetRows();
 
-  bool         SendLCDd(CStdString &command);
+  bool         SendLCDd(const CStdString &command);
   void         ReadAndFlushSocket();
 
   // Handlers for icon-handling sub-instances

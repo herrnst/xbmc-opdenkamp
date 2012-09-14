@@ -75,7 +75,7 @@ void XLCDproc::ReadAndFlushSocket()
   }
 }
 
-bool XLCDproc::SendLCDd(CStdString &command)
+bool XLCDproc::SendLCDd(const CStdString &command)
 {
   if (m_sockfd == -1)
     return false;
@@ -94,6 +94,8 @@ bool XLCDproc::SendLCDd(CStdString &command)
 
 void XLCDproc::Initialize()
 {
+  int sockfdopt;
+
   if (!m_used || !g_guiSettings.GetBool("videoscreen.haslcd"))
     return ;//nothing to do
 
@@ -114,14 +116,26 @@ void XLCDproc::Initialize()
 
     RecognizeAndSetIconDriver();
 
-    if (fcntl(m_sockfd, F_SETFL, fcntl(m_sockfd, F_GETFL) | O_NONBLOCK) == -1)
+    if ((sockfdopt = fcntl(m_sockfd, F_GETFL)) == -1)
     {
       CLog::Log(LOGERROR,
-        "XLCDproc::%s - Cannot set socket to nonblocking mode, stopping LCD",
+        "XLCDproc::%s - Cannot read socket flags, stopping LCD",
           __FUNCTION__);
 
       CloseSocket();
       m_bStop = true;
+    }
+    else
+    {
+      if (fcntl(m_sockfd, F_SETFL, sockfdopt | O_NONBLOCK) == -1)
+      {
+        CLog::Log(LOGERROR,
+          "XLCDproc::%s - Cannot set socket to nonblocking mode, stopping LCD",
+            __FUNCTION__);
+
+        CloseSocket();
+        m_bStop = true;
+      }
     }
   }
   else
