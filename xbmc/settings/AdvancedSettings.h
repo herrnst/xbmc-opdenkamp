@@ -154,9 +154,10 @@ class CAdvancedSettings
 
     bool m_lcdHeartbeat;
     bool m_lcdDimOnScreenSave;
+    CStdString m_lcdScrollSeparator;
     int m_lcdScrolldelay;
-    CStdString m_lcdHostName;
     int m_lcdRefreshRate;
+    CStdString m_lcdHostName;
     CStdString m_lcdProgressBar1;
     CStdString m_lcdProgressBar2;
     CStdString m_lcdProgressBar3;

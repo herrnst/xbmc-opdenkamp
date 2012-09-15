@@ -120,9 +120,10 @@ void CAdvancedSettings::Initialize()
 
   m_lcdHeartbeat = false;
   m_lcdDimOnScreenSave = false;
+  m_lcdScrollSeparator = " ";
   m_lcdScrolldelay = 1;
+  m_lcdRefreshRate = 4; // Hertz
   m_lcdHostName = "localhost";
-  m_lcdRefreshRate = 4; // in Hertz
   m_lcdProgressBar1 = "progress";
   m_lcdProgressBar2 = "volume";
   m_lcdProgressBar3 = "none";
@@ -654,13 +655,18 @@ void CAdvancedSettings::ParseSettingsFile(const CStdString &file)
   {
     XMLUtils::GetBoolean(pElement, "heartbeat", m_lcdHeartbeat);
     XMLUtils::GetBoolean(pElement, "dimonscreensave", m_lcdDimOnScreenSave);
+    XMLUtils::GetString(pElement, "scrollseparator", m_lcdScrollSeparator);
     XMLUtils::GetInt(pElement, "scrolldelay", m_lcdScrolldelay, -8, 8);
-    XMLUtils::GetString(pElement, "hostname", m_lcdHostName);
     XMLUtils::GetInt(pElement, "refreshrate", m_lcdRefreshRate, 1, 20);
+    XMLUtils::GetString(pElement, "hostname", m_lcdHostName);
     XMLUtils::GetString(pElement, "progressbar1", m_lcdProgressBar1);
     XMLUtils::GetString(pElement, "progressbar2", m_lcdProgressBar2);
     XMLUtils::GetString(pElement, "progressbar3", m_lcdProgressBar3);
     XMLUtils::GetString(pElement, "progressbar4", m_lcdProgressBar4);
+
+    // add whitespace around separator
+    if (m_lcdScrollSeparator != " ")
+      m_lcdScrollSeparator = " " + m_lcdScrollSeparator + " ";
   }
   pElement = pRootElement->FirstChildElement("network");
   if (pElement)
