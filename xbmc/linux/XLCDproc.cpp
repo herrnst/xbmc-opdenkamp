@@ -446,6 +446,7 @@ void XLCDproc::SetLine(int iLine, const CStdString& strLine)
 
   CStdString strLineLong = strLine;
   strLineLong.Trim();
+  StringToLCDCharSet(strLineLong, m_iCharsetTab);
 
   //make string fit the display if it's smaller than the width
   if (strLineLong.size() < m_iColumns)

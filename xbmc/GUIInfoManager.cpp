@@ -1638,13 +1638,13 @@ CStdString CGUIInfoManager::GetLabel(int info, int contextWindow)
     {
       int iPlaySpeed = g_application.GetPlaySpeed();
       if (g_application.IsPaused())
-        strLabel.Format("\22");
+        strLabel.Format("\7");
       else if (iPlaySpeed < 1)
-        strLabel.Format("\26:%ix", iPlaySpeed);
+        strLabel.Format("\3:%ix", iPlaySpeed);
       else if (iPlaySpeed > 1)
-        strLabel.Format("\25:%ix", iPlaySpeed);
+        strLabel.Format("\4:%ix", iPlaySpeed);
       else
-        strLabel.Format("\20");
+        strLabel.Format("\5");
     }
     break;
 
