@@ -114,8 +114,6 @@ void XLCDproc::Initialize()
 
     m_bStop = false;
 
-    RecognizeAndSetIconDriver();
-
     if ((sockfdopt = fcntl(m_sockfd, F_GETFL)) == -1)
     {
       CLog::Log(LOGERROR,
@@ -211,6 +209,9 @@ bool XLCDproc::Connect()
   if(sscanf(reply+i,"lcd wid %u hgt %u", &m_iColumns, &m_iRows))
     CLog::Log(LOGDEBUG, "XLCDproc::%s - LCDproc data: Columns %i - Rows %i.", __FUNCTION__, m_iColumns, m_iRows);
 
+  // Check for supported extra icon LCD driver
+  RecognizeAndSetIconDriver();
+
   //Build command to setup screen
   CStdString cmd;
   cmd = "screen_add xbmc\n";
@@ -242,13 +243,6 @@ bool XLCDproc::Connect()
 
 void XLCDproc::RecognizeAndSetIconDriver()
 {
-  // Receive LCDproc data to determine the driver
-  char reply[1024];
-
-  // Initialisation delays
-  unsigned int msWaitTime = 10000;
-  unsigned int msTimeout = 250000;
-
   // Get information about the driver
   CStdString info;
   info = "info\n";
@@ -259,43 +253,56 @@ void XLCDproc::RecognizeAndSetIconDriver()
     return;
   }
 
-  for (unsigned int ms = 0; ms < msTimeout; ms += msWaitTime)
+  // Receive LCDproc data to determine the driver
+  char reply[1024] = {};
+
+  // Receive server's reply
+  if (read(m_sockfd, reply, 1024) < 0)
   {
-    usleep(msWaitTime); // wait for the answer
+    // Don't go any further if an error occured
+    CLog::Log(LOGERROR, "XLCDproc::%s - Unable to read from socket", __FUNCTION__);
+    return;
+  }
 
-    // Receive server's reply
-    if (read(m_sockfd, reply, 1024) < 0)
-    {
-      CLog::Log(LOGERROR, "XLCDproc::%s - Unable to read from socket", __FUNCTION__);
-    }
-    else
-    {
-      CLog::Log(LOGINFO, "XLCDproc::%s - Plain driver name is: %s", __FUNCTION__, reply);
-    }
+  // See if running LCDproc driver gave any useful reply.
+  // From lcdprocsrc/server/drivers.c on the info command:
+  // * Get information from loaded drivers.
+  // * \return  Pointer to information string of first driver with get_info() function defined,
+  // *          or the empty string if no driver has a get_info() function.
+  // "empty string" means "\n", the popular HD44780 is such a candidate...
+  if (strncmp(reply, "\n", 1) == 0)
+  {
+    // Empty (unusable) info reply, WARN that
+    CLog::Log(LOGWARNING, "XLCDproc::%s - No usable reply on 'info' command, no icon support!",
+      __FUNCTION__);
+    return;
+  }
+  else
+  {
+    // Log LCDproc 'info' reply
+    CLog::Log(LOGNOTICE, "XLCDproc::%s - Plain driver name is: %s", __FUNCTION__, reply);
+  }
 
-    // to support older and newer versions of the lcdproc driver for the imon-lcd:
-    CStdString driverStringImonLcd = "SoundGraph iMON";
-    CStdString driverStringImonLcd2 = "LCD";
+  // to support older and newer versions of the lcdproc driver for the imon-lcd:
+  CStdString driverStringImonLcd = "SoundGraph iMON";
+  CStdString driverStringImonLcd2 = "LCD";
 
-    CStdString driverStringMdm166a = "mdm166a";
+  CStdString driverStringMdm166a = "mdm166a";
 
-    if ((strstr(reply, driverStringImonLcd.c_str()) != NULL) && (strstr(reply,
-        driverStringImonLcd2.c_str()) != NULL))
-    {
-      CLog::Log(LOGINFO, "XLCDproc::%s - Driver is: %s", __FUNCTION__,
-          "SoundGraph iMON LCD driver");
-      m_lcdprocIconDevice = new XLCDproc_imon(m_sockfd);
-      m_iCharsetTab = LCD_CHARSET_TAB_IMONMDM;
-      break;
-    }
-    else if (strstr(reply, driverStringMdm166a.c_str()) != NULL)
-    {
-      CLog::Log(LOGINFO, "XLCDproc::%s - Driver is: %s", __FUNCTION__,
-                "Targa USB Graphic Vacuum Fluorescent Display (mdm166a)");
-      m_lcdprocIconDevice = new XLCDproc_mdm166a(m_sockfd);
-      m_iCharsetTab = LCD_CHARSET_TAB_IMONMDM;
-      break;
-    }
+  if ((strstr(reply, driverStringImonLcd.c_str()) != NULL) && (strstr(reply,
+      driverStringImonLcd2.c_str()) != NULL))
+  {
+    CLog::Log(LOGINFO, "XLCDproc::%s - Driver is: %s", __FUNCTION__,
+        "SoundGraph iMON LCD driver");
+    m_lcdprocIconDevice = new XLCDproc_imon(m_sockfd);
+    m_iCharsetTab = LCD_CHARSET_TAB_IMONMDM;
+  }
+  else if (strstr(reply, driverStringMdm166a.c_str()) != NULL)
+  {
+    CLog::Log(LOGINFO, "XLCDproc::%s - Driver is: %s", __FUNCTION__,
+              "Targa USB Graphic Vacuum Fluorescent Display (mdm166a)");
+    m_lcdprocIconDevice = new XLCDproc_mdm166a(m_sockfd);
+    m_iCharsetTab = LCD_CHARSET_TAB_IMONMDM;
   }
 }
 
